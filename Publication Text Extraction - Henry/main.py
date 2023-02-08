@@ -42,5 +42,3 @@ request_doi = cr.works(ids = '10.1038/s41524-021-00687-2')  # search for a speci
 print(request_doi['message']['title'][0])
 citation = cn.content_negotiation(ids = '10.1038/s41524-021-00687-2', format = 'text')  # get citation for the DOI
 print(citation)
-
-pass
