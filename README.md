@@ -22,4 +22,9 @@ How might we reliably automate a literature review?
 The aim/goal of this is to provide a way to programmically extract machine readable text from journal publication when provided an identifier such as a title or DOI.
 Adapted using the methodology described in https://www.nature.com/articles/s41524-021-00687-2, "Automated pipeline for superalloy data by text mining"
 
-### Installation
+### Setup and use
+Requires the habanero python package for searching crossref (https://pypi.org/project/habanero/)
+
+```shell
+pip install habanero
+```
