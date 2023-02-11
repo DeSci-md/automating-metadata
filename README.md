@@ -15,3 +15,6 @@ We hope to see how we can create a flexible metadata standard that accurately co
 We're operationalizing this problem as: 
 
 How might we reliably automate a literature review? 
+
+# Web Interface/Client
+Current progress is being tracked by [signal-k/client](http://github.com/Signal-K/client/pull/19) and will be added as a git submodule once our generator & metadata smart contracts are completed
