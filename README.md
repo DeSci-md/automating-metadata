@@ -16,7 +16,6 @@ We're operationalizing this problem as:
 
 How might we reliably automate a literature review? 
 
-
 ## Publication Text Extraction
 ### Aim/Goal
 The aim/goal of this is to provide a way to programmically extract machine readable text from journal publication when provided an identifier such as a title or DOI.
@@ -28,3 +27,6 @@ Requires the habanero python package for searching crossref (https://pypi.org/pr
 ```shell
 pip install habanero
 ```
+
+# Web Interface/Client
+Current progress is being tracked by [signal-k/client](http://github.com/Signal-K/client/pull/19) and will be added as a git submodule once our generator & metadata smart contracts are completed
