@@ -1,0 +1,35 @@
+
+name: sytizen
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+    - DATABASE_URL=postgresql://database:5432/
+    ports:
+    - "5000:5000"
+    expose: 
+    - "5000"
+    depends_on:
+    - database
+    networks:
+    - back-tier
+  database:
+    image: postgres:latest
+    user: postgres
+    environment:
+    - POSTGRES_HOST_AUTH_METHOD=trust
+    - PGUSER=postgres
+    - POSTGRES_PASSWORD=postgres
+    ports:
+    - "5432:5432"
+    expose:
+    - "5432"
+    networks:
+    - back-tier
+
+networks:
+  # front-tier: {}
+  back-tier: {}
