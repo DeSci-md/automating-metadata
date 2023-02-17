@@ -1,2 +1,4 @@
 # Virtual environment folders
 venv
+config.json
+logs
