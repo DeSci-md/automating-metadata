@@ -28,6 +28,19 @@ Requires the habanero python package for searching crossref (https://pypi.org/pr
 pip install habanero
 ```
 
+For calling the Elsevier API, the httpx module is used.
+
+```shell
+pip install httpx
+```
+
+For XML file parsing, the package BeautifulSoup is used, with lxml as an xml parser.
+
+```shell
+pip install beautifulsoup4
+pip install lxml
+```
+
 # Web Interface/Client
 Current progress is being tracked by [signal-k/client](http://github.com/Signal-K/client/pull/19) and will be added as a git submodule once our generator & metadata smart contracts are completed
 
