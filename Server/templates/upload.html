@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Upload File IPFS</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class=flashes>
+            {% for message in messages %}
+            <div class="notification is-danger">
+                <a href="/" class="delete"></a>
+                {{ message }}
+            </div>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+        {% block body %}{% endblock %}
+    </head>
+    <body>
+        <nav class="navbar is-link" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a target="_blank" class="navbar-item" href="https://docs.ipfs.io/concepts/what-is-ipfs/">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Ipfs-logo-1024-ice-text.png/120px-Ipfs-logo-1024-ice-text.png?20180220024806" width="30" height="40">
+                </a>
+            </div>
+            <div id="navbar1" class="navbar-menu">
+                <div class="navbar-start">
+                    <a href="/" class="navbar-item">Files</a>
+                    <a href="/find" class="navbar-item">Search</a>
+                    <a href="/verifier" class="navbar-item">File Verifier</a>
+                    <a href="/print-file?" class="navbar-item">Print</a>
+                    <div class="navbar-item has-dropdown is-hoverable">
+                        <a class="navbar-link">Filter</a>
+                        <div class="navbar-dropdown">
+                            <a href="/filter-pin" class="navbar-item">Pinned</a>
+                            <a href="/filter-unpin" class="navbar-item">Unpinned</a>
+                            <a href="/" class="navbar-item">All</a>
+                            <hr class="navbar-divider">
+                            <a target="_blank" href="https://wa.me/+6282155534039/?text=there's a problem..." class="navbar-item">Report an issue</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="navbar-end">
+                    <div class="navbar-item">
+                        <div class="buttons">
+                            <a href="/logout" class="button is-light" onclick="preventBack()">Log out</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <section class="hero is-small">
+            <div class="hero-body">
+                <p class="title">Hello {{user}}</p>
+                <p class="subtitle">Have a good day</p>
+            </div>
+        </section>
+
+        <div class="container is-max-widescreen">
+            <div class="notification ">
+                <div class="box">
+                    <span class="subtitle">Upload</span>
+                    <form action = "http://localhost:5000/uploader" method = "POST" 
+                        enctype = "multipart/form-data">
+                        <input class="button is-medium"  type="file" name="file" />
+                        <input class="button is-pulled-right is-medium is-primary"  type="submit"/>
+                    </form>
+                </div>
+                <div class="box">
+                    <span class="title">Your File</span>
+                    <table class="table" width="100%">
+                        <tr>
+                            <th>Name File</th>
+                            <th>Status</th>
+                            <th>Hash</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                        {% if c == 0 %}
+                    </table>
+                        <section class="section">
+                            <div class="container">
+                            <div class="columns is-centered">
+                                <div class="column is-half">
+                                <figure>
+                                    <img src="https://cdn.dribbble.com/users/760295/screenshots/4433975/media/03494b209a1511a61868ced337b97931.png?compress=1&resize=800x600&vertical=top" alt="Melton Hill Lake">
+                                </figure>
+                                </div>
+                            </div>
+                            </div>
+                        </section>
+                        {% else %}
+                            {% for file in datas %}
+                                <tr>
+                                    {% if file.pin_status == 0 %}
+                                        <td>{{file.file_name}}</td>
+                                        <td></td>
+                                    {% endif %}
+                                    {% if file.pin_status == 1 %}
+                                        <td>{{file.file_name}}</td>
+                                        <td><img src="https://uxwing.com/wp-content/themes/uxwing/download/tools-equipment-construction/thumbtack-icon.svg" width="20" height="20"></td>
+                                    {% endif %}
+                                    <td>{{file.file_hash}}</td>
+                                    <td>{{file.date}}</td>
+                                    <td>
+                                        <div class="dropdown is-hoverable">
+                                            <div class="dropdown-trigger">
+                                                <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                                                    <span>More</span>
+                                                    <span class="icon is-small">
+                                                        <i class="fas fa-angle-down" aria-hidden="true"></i>
+                                                    </span>
+                                                </button>
+                                            </div>
+                                            <form>
+                                                <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                                                    <div class="dropdown-content">
+                                                        {% if file.pin_status == 0 %}
+                                                            <a href="/pin-file?file_hash={{ file.file_hash }}" class="dropdown-item">Pin</a>
+                                                        {% endif %}
+                                                        {% if file.pin_status == 1 %}
+                                                            <a href="/rm-pin-file?file_hash={{ file.file_hash }}" class="dropdown-item">Unpin</a>
+                                                        {% endif %}
+                                                        <a href="update/{{file.id}}" class="dropdown-item">Edit</a>
+                                                        <a onclick="copyText('{{file.file_hash}}')" class="dropdown-item">Share CIDs</a>
+                                                        <a target="_blank" href="/direct-print?file_hash={{ file.file_hash }}" class="dropdown-item">Print</a>
+                                                        <hr class="navbar-divider">
+                                                        <a href="/delete-file?id={{ file.id }}" class="dropdown-item">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <footer class="footer">
+            <div class="content has-text-centered">
+                <p>
+                    <strong>InterPlanetary File System for Private Document</strong> by <a href="https://linkedin.com/in/kevin-refinaldi">Kevin Refinaldi Berlin</a>.
+                </p>
+            </div>
+        </footer>
+    </body>
+    <script>
+        function copyText(hash) {
+            navigator.clipboard.writeText("https://ipfs.io/ipfs/" + hash);
+        }
+        function preventBack(){window.history.forward();}
+            setTimeout("preventBack()", 0);
+            window.onunload=function(){null};
+    </script>
+</html>
+

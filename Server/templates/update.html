@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Find File From IPFS</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    </head>
+    <body>
+        <nav class="navbar is-link" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a target="_blank" class="navbar-item" href="https://docs.ipfs.io/concepts/what-is-ipfs/">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Ipfs-logo-1024-ice-text.png/120px-Ipfs-logo-1024-ice-text.png?20180220024806" width="30" height="40">
+                </a>
+            
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar1">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+        
+            <div id="navbar1" class="navbar-menu">
+                <div class="navbar-start">
+                    <a href="/" class="navbar-item" >Files</a>
+                    <a href="/find" class="navbar-item">Search</a>
+                    <a href="/verifier" class="navbar-item">File Verifier</a>
+                    <a href="/print-file?" class="navbar-item">Print</a>
+                </div>
+        
+                <div class="navbar-end">
+                    <div class="navbar-item">
+                        <div class="buttons">
+                            <a href="/logout" class="button is-light" onclick="preventback()">Log out</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <section class="hero is-small">
+            <div class="hero-body">
+                <p class="title" >Update</p>
+                <p class="subtitle">edit file name</p>
+            </div>
+        </section>
+
+        <div class="container is-max-widescreen">
+            <div class="notification ">
+                <div class="box">
+                    <form class="box" action="/edit-file/{{file_to_update.id}}" method = "POST">
+                        <div class="field">
+                            <label class="label">New name</label>
+                            <div class="control">
+                                <input class="input" type="text" name="name" value={{file_to_update.file_name}} required>
+                            </div>
+                        </div>
+                        <button class="button is-primary" type="submit">Save</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <footer class="footer">
+            <div class="content has-text-centered">
+                <p>
+                    <strong>InterPlanetary File System for Private Document</strong> by <a href="https://linkedin.com/in/kevin-refinaldi">Kevin Refinaldi Berlin</a>.
+                </p>
+            </div>
+        </footer>
+    </body>
+    <script>
+        function preventBack(){window.history.forward();}
+            setTimeout("preventBack()", 0);
+            window.onunload=function(){null};
+    </script>
+</html>
