@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>File Verifier</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class=flashes>
+                {% for message in messages %}
+                <!-- <div class="notification is-link is-light">
+                    <a href="/verifier" class="delete"></a>
+                    {{ message }}
+                </div> -->
+                <div id="modal-js-example" class="modal">
+                    <div class="modal-background"></div>
+                  
+                    <div class="modal-content">
+                      <div class="box">
+                            <!-- {{ message }} -->
+                            {% set list1 = message.split(',') %}
+                            {% for item in list1 %}
+                                <p>{{ item }}</p>
+                            {% endfor %} 
+                      </div>
+                    </div>
+                    <button class="modal-close is-large" aria-label="close"></button>
+                </div>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        {% block body %}{% endblock %}
+    </head>
+    <body>
+        <nav class="navbar is-link" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a target="_blank" class="navbar-item" href="https://docs.ipfs.io/concepts/what-is-ipfs/">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Ipfs-logo-1024-ice-text.png/120px-Ipfs-logo-1024-ice-text.png?20180220024806" width="30" height="40">
+                </a>
+            
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar1">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+        
+            <div id="navbar1" class="navbar-menu">
+                <div class="navbar-start">
+                    <a href="/" class="navbar-item">Files</a>
+                    <a href="/find" class="navbar-item">Search</a>
+                    <a href="/verifier" class="navbar-item">File Verifier</a>
+                    <a href="/print-file?" class="navbar-item">Print</a>
+                </div>
+        
+                <div class="navbar-end">
+                    <div class="navbar-item">
+                        <div class="buttons">
+                            <a href="/logout" class="button is-light" onclick="preventback()">Log out</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <section class="hero is-small">
+            <div class="hero-body">
+                <p class="title">Verifier</p>
+                <p class="subtitle">Check File</p>
+            </div>
+        </section>
+
+        <div class="container is-max-widescreen ">
+            <div class="notification ">
+                <div class="box" style="margin-bottom:-5px;">
+                    <span class="subtitle">Upload softfile document</span>
+                    <form action = "http://localhost:5000/file-verifier" method = "POST" enctype = "multipart/form-data">
+                        <input class="button is-medium" type = "file" name = "file1" />
+                        <input class="button is-pulled-right is-medium is-primary" onclick="enableButton2()" type = "submit"/>
+                    </form>
+                </div>
+                <p class="has-text-centered is-size-1" style="margin-bottom:10px;">or</p>
+                <div class="box">
+                    <span class="subtitle">Upload QR code document</span>
+                    <form enctype="multipart/form-data" action="http://api.qrserver.com/v1/read-qr-code/" method="POST">
+                        <input type="hidden" name="MAX_FILE_SIZE" value="1048576" />
+                        <input class="button is-medium" name="file2" type="file" />
+                        <input class="button is-pulled-right is-medium is-primary" type="submit" onclick="enableButton2()" value="Read QR code" />
+                    </form>
+                </div>
+                <button id="button2" class="button js-modal-trigger is-large disabled" data-target="modal-js-example" >
+                    Result
+                </button>
+            </div>
+        </div>
+        <div id="modal-js-example" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-content">
+              <div class="box">
+                <p>No result to show</p>
+                <p>please upload file first</p>
+              </div>
+            </div>
+            <button class="modal-close is-large" aria-label="close"></button>
+        </div>
+        
+        <footer class="footer">
+            <div class="content has-text-centered">
+                <p>
+                    <strong>InterPlanetary File System for Private Document</strong> by <a href="https://linkedin.com/in/kevin-refinaldi">Kevin Refinaldi Berlin</a>.
+                </p>
+            </div>
+        </footer>
+        
+    </body>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Functions to open and close a modal
+            function openModal($el) {
+              $el.classList.add('is-active');
+            }
+          
+            function closeModal($el) {
+              $el.classList.remove('is-active');
+            }
+          
+            function closeAllModals() {
+              (document.querySelectorAll('.modal') || []).forEach(($modal) => {
+                closeModal($modal);
+              });
+            }
+          
+            // Add a click event on buttons to open a specific modal
+            (document.querySelectorAll('.js-modal-trigger') || []).forEach(($trigger) => {
+              const modal = $trigger.dataset.target;
+              const $target = document.getElementById(modal);
+          
+              $trigger.addEventListener('click', () => {
+                openModal($target);
+              });
+            });
+          
+            // Add a click event on various child elements to close the parent modal
+            (document.querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete, .modal-card-foot .button') || []).forEach(($close) => {
+              const $target = $close.closest('.modal');
+          
+              $close.addEventListener('click', () => {
+                closeModal($target);
+              });
+            });
+          
+            // Add a keyboard event to close all modals
+            document.addEventListener('keydown', (event) => {
+              const e = event || window.event;
+          
+              if (e.keyCode === 27) { // Escape key
+                closeAllModals();
+              }
+            });
+          });
+
+        function enableButton2() {
+            document.getElementById("button2").classList.add("is-primary")
+            document.getElementById("button2").disabled = false;
+
+        }
+
+        function preventBack(){window.history.forward();}
+            setTimeout("preventBack()", 0);
+            window.onunload=function(){null};
+
+    </script>
+</html>
