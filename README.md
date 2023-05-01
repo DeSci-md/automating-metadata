@@ -1,6 +1,6 @@
 # automating-metadata
 
-A central place to drop all of our experiments!
+A central place to drop all of our experiments! As a disclaimer - we're still at the experimentation phase! Lots of this code will change. 
 
 The core of this project is to see how we can use LLM and other technology available to us to respond to the following problems (not an exhaustive list): 
 
