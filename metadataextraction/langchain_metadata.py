@@ -5,7 +5,7 @@ import fitz #pdf reading library
 import json
 import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "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"
 
 def pdfMetadata(filepath): 
     """
@@ -25,9 +25,7 @@ def pdfMetadata(filepath):
 def contentmetadata(document, topics):
     contentMetadata = {}
 
-    index = VectorstoreIndexCreator().from_loaders([loader])
-
-    
+    index = VectorstoreIndexCreator().from_loaders([document])
 
     for i in range(len(topics)):
         query = "what is the {} of this paper?".format(topics[i])
@@ -37,11 +35,11 @@ def contentmetadata(document, topics):
      
 def main():
 
-    filepath = "/Users/desot1/Dev/desci/Papageorgiou et al_2017_Mechanical properties of graphene and graphene-based nanocomposites.pdf"
+    filepath = "/Users/desot1/downloads/220225_capstone_draft2.pdf"
     
     loader = PyMuPDFLoader(filepath)
 
-    categories = ['Research Question', 'Alterative Approaches', 'Hypothesis', 'Methodology', 'Results', 'Inferences']
+    categories = ["names given", "university of the author(s)"]# ['Research Question', 'Alterative Approaches', 'Hypothesis', 'Methodology', 'Results', 'Inferences']
 
     content = contentmetadata(loader, categories)
 
