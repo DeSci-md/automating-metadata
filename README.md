@@ -87,3 +87,6 @@ The easiest solution is to turn off the Airplay Receiver service; an alternative
 The server responds to `http://localhost:5000` with a classic "Hello World"
 
 Several of the blueprints in `app.py` are commented out since they have dependencies on ThirdWeb
+
+# Flask blueprints
+For now, each flask file is located in the root directory of this repository - however they'll be moved into their own folders with their respective models, views and controllers down the line
