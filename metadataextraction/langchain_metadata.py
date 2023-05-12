@@ -5,7 +5,7 @@ import fitz #pdf reading library
 import json
 import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ['OPENAI_API_KEY'] 
 
 def pdfMetadata(filepath): 
     """
@@ -33,10 +33,8 @@ def contentmetadata(document, topics):
 
     return contentMetadata
      
-def main():
+def main(filepath):
 
-    filepath = "/Users/desot1/downloads/220225_capstone_draft2.pdf"
-    
     loader = PyMuPDFLoader(filepath)
 
     categories = ["names given", "university of the author(s)"]# ['Research Question', 'Alterative Approaches', 'Hypothesis', 'Methodology', 'Results', 'Inferences']
@@ -46,13 +44,8 @@ def main():
     descriptive = pdfMetadata(filepath)
 
     metadata = [descriptive, content]
-
-    print(metadata)
     
     with open("metadata.json", "w") as write_file:
         json.dump(metadata, write_file, indent=4)  
 
     return metadata
-
-if __name__ == "__main__":
-    main()
