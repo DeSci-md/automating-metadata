@@ -1,0 +1,2 @@
+export const imagesCdnAddress = 'https://qwbufbmxkjfaikoloudl.supabase.co/storage/v1/object/public/images/'
+export const generatorCdnInfo = 'https://github.com/Signal-K/client/commit/ab6b6db464602535a7ca9e471956e021ffbf3c95'

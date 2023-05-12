@@ -1,0 +1,26 @@
+name: MoralisDeploy
+
+on:
+  push:
+    branches: [ ansible ]
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+    
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+
+      steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Moralis Deploy Action
+      # You may pin to the exact commit or the version.
+      # uses: YosephKS/moralis-deploy-action@4572ad029564ed9f62384c4982737e0a31868840
+        uses: YosephKS/moralis-deploy-action@v1.0.6.beta1
+        env:
+          MORALIS_API_KEY: ${{ secrets.MORALIS_API_KEY }}
+          MORALIS_API_SECRET: ${{ secrets.MORALIS_API_SECRET }}
+          MORALIS_API_SUBDOMAIN: ${{ secrets.MORALIS_API_SUBDOMAIN }}
+          CUSTOM_FOLDER_PATH: ./build
