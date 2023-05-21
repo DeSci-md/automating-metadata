@@ -8,7 +8,7 @@ search_bp = Blueprint('search_flask', __name__)
 
 @search_bp.route('/')
 def home():
-    x = "<p>Home page, input a doi number to search via /doisearch/[doi number] in the address bar.</p><p>Input the DOI with all slashes replaced with hyphens (-), may be a way to avoid this in the future.</p>"
+    x = "<p>Home page, input a doi number to search via /doisearch/[doi number] in the address bar.</p><p>Input the DOI with all slashes replaced with hyphens (-)."
 
     return x
 
@@ -18,12 +18,11 @@ def doi_search(doi_number_hyphen):
     Use the user inputted DOI identifier and perform a search for published data and text
     using API calls to Semantic Scholar, Elsevier, and Crossref
     """
-    print(doi_number_hyphen)
     doi_number = doi_number_hyphen.replace('-','/')
-    print(doi_number)
-    print(type(doi_number))
+    results = paper_data_json_single(doi_number)
 
-    return paper_data_json_single(doi_number)
+    return results
+
 
 def paper_data_json_single(doi):
     """
@@ -41,8 +40,8 @@ def paper_data_json_single(doi):
     #%% Setting up info for usage of API's
     # define crossref object
     cr = Crossref()  
-    cr.mailto = 'haloh@mix.wvu.edu'
-    cr.ua_string = 'Python script for retrieving paper info from query for research.'
+    cr.mailto = 'desotaelianna@gmail.com'
+    cr.ua_string = 'Python/Flask script for use in Desci Nodes publication information retrieval.'
 
     # Elsevier API key
     with open("config.json") as file:  # load config/api key
