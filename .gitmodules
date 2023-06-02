@@ -4,3 +4,6 @@
 [submodule "PDFDataExtractor"]
 	path = PDFDataExtractor
 	url = https://github.com/Plikt/PDFDataExtractor.git
+[submodule "Server/PDFDataExtractor"]
+	path = Server/PDFDataExtractor
+	url = https://github.com/Plikt/PDFDataExtractor.git
