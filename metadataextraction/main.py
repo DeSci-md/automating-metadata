@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import langchain_metadata
 
 os.environ['OPENAI_API_KEY'] 
-UPLOAD_FOLDER = '/Users/desot1/Document/GitHub/automating-metadata/metadataextraction/templates'
+UPLOAD_FOLDER = '/uploads'
 
 app = Flask(__name__)
 app.config['UPLOAD_EXTENSIONS'] = ['.pdf']
