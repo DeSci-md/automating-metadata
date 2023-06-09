@@ -4,8 +4,10 @@ from langchain.indexes import VectorstoreIndexCreator
 import fitz #pdf reading library
 import json
 import os
+#from pdfdataextractor.demo import read_single as pde
+#from pdfdataextractor import Reader as read
 
-os.environ['OPENAI_API_KEY'] 
+os.environ['OPENAI_API_KEY']     
 
 def pdfMetadata(filepath): 
     """
@@ -20,6 +22,13 @@ def pdfMetadata(filepath):
     """
     doc = fitz.open(filepath)
     metadata = doc.metadata
+    
+    #secondary = pde.readsingle(filepath)
+    #metadata.update(secondary)
+
+   # if metadata['author'] == 'null': 
+        #metadata['author'] == read.read_file(filepath)
+
     return metadata 
 
 def contentmetadata(document, topics):

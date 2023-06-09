@@ -1,19 +1,21 @@
-[
-    {
-        "format": "PDF 1.4",
-        "title": "220225_capstone_draft2",
-        "author": "",
-        "subject": "",
-        "keywords": "",
-        "creator": "",
-        "producer": "Skia/PDF m114 Google Docs Renderer",
-        "creationDate": "",
-        "modDate": "",
-        "trapped": "",
-        "encryption": null
+{
+    "journal": {
+        "name": "Draft version June , \nTypeset using LATEX default style in AASTeX",
+        "year": "2023",
+        "volume": "5",
+        "page": "631"
     },
-    {
-        "names given": " I don't know.",
-        "university of the author(s)": " I don't know."
-    }
-]
+    "title": "",
+    "doi": "None",
+    "abstract": "1. INTRODUCTION",
+    "caption": {
+        "figure 1": "Figure 1. Flowchart of the calibration procedure for each observation. Procedures in red/triangle indicate manual flagging; grey/circle indicate phase calibration; yellow/squares indicate bandpass calibration; green/pentagon indicate an update to the correlator model; light blue circles are phase calibration procedures after correcting for the position of C1. During each step, the latest calibration, flag, and/or bandpass tables are applied. After the initial fringe fitting of the primary phase calibrator, C1, its position is updated in its correlator model to its position given in the ICRF3 (Charlot et al. 2020). This assures us that the change of correlation position of C1 due to the adoption of the ICRF3 in between our observing campaigns is not affecting the position of Mrk 1018. After this, C1 is once again fringe fit, and the solutions are interpolated to C1, C2, and Mrk 1018. The procedures after the second fringe fitting of C1 follow those described in the AIPS MEMO 111 (see footnote in Sect 2.2)",
+        "figure 2": "Fig. 2 shows the 3 and 10 GHz total intensity maps of the VLA of Mrk 1018. In each of the images, the radio emission is unresolved at the sub-kpc scales probed by our VLA observations: < 600 pc and < 200 pc for the 3 and 10 GHz images, respectively. To determine the flux density at each central frequency, we performed 2D elliptical Gaussian fitting to the unresolved radio component in each image. The error associated with each flux density measurement was found by summing in quadrature the image RMS noise and a standard flux calibration error of 3% of the peak pixel value (Perley & Butler 2017). The flux densities, their associated errors, the restoring beams, and other properties, are listed in Table 2.",
+        "figure 3": "Figure 3. From left to right: 2.3, 5.4, and 8.8 GHz VLBA intensity maps of the radio source associated with Mrk 1018. For the 2.3 and 8.8 GHz image, contours are overlayed at -3, 3, 5, 10, and 20 times the image RMS (27 \u00b5Jy beam\u22121 and 20 \u00b5Jy beam\u22121, respectively). For the 5.4 GHz image, contours are overlayed at -3, 3, 5, 10, 20, 40, 80 times the image RMS (7 \u00b5Jy beam\u22121) The source is unresolved (Speak/S\u03bd > 0.8) in each image, placing a maximium physical size of 2.4 pc at the redshift of the source, and has a flat spectral index \u03b1 = \u22120.18 \u00b1 0.04. Low significance structure is caused by small closure errors in the calibration. The restoring beams are plotted in the lower left hand corner of each image.",
+        "figure 4": "Figure 4. Flux density and spectral index variability of the milliarcsecond-scale radio core associated with Mrk 1018 taken from our multi-epoch, 2.3 - 8.8 GHz Very Long Baseline Array (VLBA) observations. The blue squares and dashed line are from observations taken between August 2014 and June 2016 (VLBA program BS237). The black circles and solid line are from observations between June 2020 and February 2021 (VLBA program BS280). We interpret the spectral change as the result of standard variability associated with a flat-spectrum radio source following a flaring period. We note that the errors shown here minimize the reduced \u03c72 of the fit but there is likely a 10% error in the flux density scale.",
+        "figure 5": "Figure 5. Core shift phenomenon observed for the VLBI component of Mrk 1018. Chromatic variation of the position of radio emission is unique to the radio core, where the opacity of the radio jet is \u03c4 \u2248 1. Blue squares are from observations taken between August 2014 and June 2016 (BS237) with the fit as the dashed, blue line. Black circles are from observations taken between June 2020 and February 2021 (BS280) with the fit as the solid, black line. For each observing program, the reference position was taken to be that determined by the respective 8.8 GHz image. Although there is an observed change in the total positional difference of the radio core between the two observing programs, our analysis finds no significant variation of kr over this same period.",
+        "figure 6": "Figure 6. Left: Angular offsets in Right Ascension of Mrk 1018\u2019s milliarcsecond radio core as a function of MJD. The best-fit line represents a proper motion of -36.4 \u00b1 8.6 \u00b5as yr\u22121, corresponding to a significance of 4.2\u03c3. Positions were determined using the 8.8 GHz data. Right: Angular offsets in Declination of Mrk 1018\u2019s milliarcsecond radio core as a function of MJD. The best-fit line represents a proper motion of 31.3 \u00b1 25.1 \u00b5as yr\u22121 (1.2\u03c3). Positions were determined using the 8.8 GHz data. For each, the reference position was taken to be that determined at MJD 56940. Errors are 1\u03c3 formal uncertainties. Black circles represent the 3- and 2-hour integration images for the two observation programs: BS237 and BS280, respectively. Red squares represent the total concatenated data for each program.",
+        "figure 7": "Figure 7. Positional displacement vectors for Mrk 1018 and the primary phase reference calibrator J0208-0047 (C1). For C1, the positional difference is that between its observed position during the BS237 program from its position given in the ICRF3 (Charlot et al. 2020), which matches its observed position in the later BS280 program. It is clear that the observed proper motion of Mrk 1018 is uncorrelated with any positional variation of C1."
+    },
+    "reference": null
+}
