@@ -1,6 +1,0 @@
-pdfdataextractor.egg-info/PKG-INFO
-pdfdataextractor.egg-info/SOURCES.txt
-pdfdataextractor.egg-info/dependency_links.txt
-pdfdataextractor.egg-info/not-zip-safe
-pdfdataextractor.egg-info/requires.txt
-pdfdataextractor.egg-info/top_level.txt
