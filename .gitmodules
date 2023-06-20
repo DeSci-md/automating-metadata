@@ -1,6 +1,6 @@
 [submodule "Ansible/Generator"]
 	path = Ansible/Generator
 	url = https://github.com/signal-k/sytizen
-[submodule "PDFDataExtractor"]
-	path = PDFDataExtractor
+[submodule "Server/PDFDataExtractor"]
+	path = Server/PDFDataExtractor
 	url = https://github.com/Plikt/PDFDataExtractor.git
