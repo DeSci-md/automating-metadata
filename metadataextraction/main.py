@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import langchain_metadata
 
 os.environ['OPENAI_API_KEY'] 
-UPLOAD_FOLDER = '/Users/desot1/Document/GitHub/automating-metadata/metadataextraction/templates'
+UPLOAD_FOLDER = '/Users/desot1/Downloads'
 
 app = Flask(__name__)
 app.config['UPLOAD_EXTENSIONS'] = ['.pdf']
@@ -40,8 +40,10 @@ def upload_file():
 @app.route('/metadata')
 
 def metadata(filename): 
+    #if __name__ == "__main__": 
+    #metadata('/Users/desot1/Downloads/propermotions.pdf')
     file_location = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    results = langchain_metadata.main(file_location)
+    results = langchain_metadata.metadata(file_location)
     return render_template('metadata.html', results=results)
     #return langchain_metadata.main(filepath)
 
