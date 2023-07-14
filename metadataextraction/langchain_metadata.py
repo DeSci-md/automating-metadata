@@ -3,9 +3,14 @@ from langchain.document_loaders import PyMuPDFLoader
 from langchain.indexes import VectorstoreIndexCreator
 import fitz #pdf reading library
 import json
+import sys 
 import os
+sys.path.append(os.path.abspath("/Users/desot1/Documents/GitHub/automating-metadata/PDFDataExtractor/pdfdataextractor"))
 
-os.environ['OPENAI_API_KEY'] 
+#from PDFDataExtractor.pdfdataextractor.demo import *
+from demo import read_single
+
+os.environ['OPENAI_API_KEY']     
 
 def pdfMetadata(filepath): 
     """
@@ -20,6 +25,27 @@ def pdfMetadata(filepath):
     """
     doc = fitz.open(filepath)
     metadata = doc.metadata
+        
+    #format, encryption, title, author, subject, keywords, creator, producer, creationDate, modDate, trapped
+    
+    secondary = read_single(filepath)
+    
+    #there's a chance that these never evaluate to false. Unsure why that is 
+    if metadata['author'] == '' and secondary['author'] != '': 
+        metadata['author'] == secondary['author']
+        
+    del secondary['author']
+
+    if metadata['keywords'] == '' and secondary['keywords'] != '': 
+        metadata['keywords'] == secondary['keywords']
+
+    del secondary['keywords']
+        
+    metadata.update(secondary) 
+    
+   # if metadata['author'] == 'null': 
+        #metadata['author'] == read.read_file(filepath)
+
     return metadata 
 
 def contentmetadata(document, topics):
@@ -33,19 +59,22 @@ def contentmetadata(document, topics):
 
     return contentMetadata
      
-def main(filepath):
+def metadata(filepath):
 
     loader = PyMuPDFLoader(filepath)
 
     categories = ["names given", "university of the author(s)"]# ['Research Question', 'Alterative Approaches', 'Hypothesis', 'Methodology', 'Results', 'Inferences']
 
-    content = contentmetadata(loader, categories)
+    #content = contentmetadata(loader, categories)
 
     descriptive = pdfMetadata(filepath)
-
-    metadata = [descriptive, content]
+    metadata = descriptive
+    """metadata = [descriptive, content]
     
     with open("metadata.json", "w") as write_file:
         json.dump(metadata, write_file, indent=4)  
 
+    print(metadata)
+"""
     return metadata
+
