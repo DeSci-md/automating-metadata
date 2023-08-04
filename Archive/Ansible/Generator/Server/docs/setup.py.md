@@ -1,1 +1,0 @@
-This python script will get all packages mentioned in `requirements.txt` or the `Pipfile` and install them
