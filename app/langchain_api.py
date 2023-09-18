@@ -35,9 +35,16 @@ sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PD
 
 from demo import read_single
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
+from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers, Funders
+import pyalex
+pyalex.config.email = "ellie@desci.com"
 
 # Load in API keys from .env file
 load_dotenv(find_dotenv())
+
+def openalex(doi): 
+    dict = Works()[doi]
+    return dict
 
 def paper_data_json_single(doi):
     """
@@ -176,7 +183,6 @@ def paper_data_json_single(doi):
    
     return output_dict
 
-
 async def async_paper_search(query, docs, chain, output_parser):
     """
     Async version of paper search, run question for the document concurrently with other questions
@@ -186,7 +192,6 @@ async def async_paper_search(query, docs, chain, output_parser):
     results = output_parser.parse(out)
 
     return results
-
 
 async def langchain_paper_search(file_path):
 
@@ -246,7 +251,6 @@ async def langchain_paper_search(file_path):
     methods, motive, results, figures, future = summary
 
     llm_output = motive | methods | figures | results | future
-
 
     return llm_output
 

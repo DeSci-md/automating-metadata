@@ -96,8 +96,9 @@ def metadata(identifier):
 
 @app.route('/metadata_doi')
 def metadata_doi(): 
-    results = res.paper_data_json_single(doi)
-    print(results)
+    #results = res.paper_data_json_single(doi)
+    results = res.openalex(doi)
+    #print(results)
     return render_template('metadata_doi.html', results=results)
 
 if __name__ == "__main__":
