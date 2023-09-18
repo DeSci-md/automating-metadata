@@ -11,7 +11,7 @@ import json
 
 from habanero import Crossref, cn  # Crossref database accessing
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
-from langchain.document_loaders import PyPDFLoader  # document loader import
+from langchain.document_loaders import PyPDFLoader, PyMuPDFLoader # document loader import
 from langchain.chat_models import ChatOpenAI  # LLM import
 from langchain import LLMChain  # Agent import
 from langchain.output_parsers import (  # Structuring the output format from the LLM questions
@@ -23,7 +23,21 @@ from langchain.prompts.chat import ( # prompts for designing inputs
     HumanMessagePromptTemplate,
     ChatPromptTemplate
 )
+from langchain.indexes import VectorstoreIndexCreator
+import fitz #pdf reading library
+import json
+#from demo import read_single
 
+#from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
+import sys 
+import os
+sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
+
+from demo import read_single
+from dotenv import load_dotenv, find_dotenv  # loading in API keys
+
+# Load in API keys from .env file
+load_dotenv(find_dotenv())
 
 def paper_data_json_single(doi):
     """
@@ -45,10 +59,7 @@ def paper_data_json_single(doi):
     cr.ua_string = 'Python/Flask script for use in Desci Nodes publication information retrieval.'
 
     # Elsevier API key
-    with open("config.json") as file:  # load config/api key
-        config = json.load(file)
-        apikey = config['apikey']
-
+    apikey = os.getenv("apikey")
     client = httpx.Client()
 
 
@@ -59,7 +70,7 @@ def paper_data_json_single(doi):
     type = r['message']['type']
     pub_name = r['message']['container-title'][0]
     pub_date = r['message']['published']['date-parts'][0]
-    subject = r['message']['subject']
+    #subject = r['message']['subject']
 
     inst_names = []  # handling multiple colleges, universities
     authors = []  # for handling multiple authors
@@ -102,9 +113,9 @@ def paper_data_json_single(doi):
         scopus_id = d['full-text-retrieval-response']['scopus-id']
         abstract = d['full-text-retrieval-response']['coredata']['dc:description']
 
-        keywords = []
+        """keywords = []
         for i in d['full-text-retrieval-response']['coredata']['dcterms:subject']:
-            keywords.append(i['$'])
+            keywords.append(i['$'])"""
 
         original_text = d['full-text-retrieval-response']['originalText']
     except:
@@ -123,6 +134,7 @@ def paper_data_json_single(doi):
     d = json.loads(json_string)
 
     paper_id = d['paperId']
+
     field_of_study = []
     if d['fieldsOfStudy'] is None:
         field_of_study = 'None'
@@ -145,23 +157,23 @@ def paper_data_json_single(doi):
         # Paper Metadata
         'title':title,
         'authors':authors,
-        'abstract':abstract,
-        'scopus_id':scopus_id,
+        #'abstract':abstract,
+        #'scopus_id':scopus_id,
         'paperId':paper_id,
         'publication_name':pub_name,
         'publish_date':pub_date,
         'type':type,
-        'keywords':keywords,
-        'subject':subject,
+        #'keywords':keywords,
+        #'subject':subject,
         'fields_of_study':field_of_study,
         'institution_names':inst_names,
         'references':refs,
         'tldr':tldr,
-        'original_text':original_text,
+        #'original_text':original_text,
         'openAccessPdf':openaccess_pdf,
         'URL_link':url_link 
     }
-
+   
     return output_dict
 
 
@@ -177,6 +189,7 @@ async def async_paper_search(query, docs, chain, output_parser):
 
 
 async def langchain_paper_search(file_path):
+
     #%% Setup, defining framework of paper info extraction
     # Define language model to use
     llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0)
@@ -237,10 +250,53 @@ async def langchain_paper_search(file_path):
 
     return llm_output
 
+def pdfprocess(file_path): 
+    results = pdfMetadata(file_path)
+    print(results)
+    #langchain = asyncio.run(langchain_paper_search(file_path))
+    #print(langchain)
+    return results
+    
+def pdfMetadata(file_path): 
+    """
+    This returns basic descriptive metadata for the PDF. 
 
-if __name__ == "__main__":
-    paper_doi = "10.1007/s13391-015-5352-y"
-    pdf_path = Path("s13391-015-5352-y-1.pdf")  # defining the location of the PDF file
+    VARS: 
+        Filepath: the path of the file you want to upload. 
+
+    RETURNS: 
+        metadata: This is the basic function of the Fitz library. 
+        It scrapes the PDF for any embedded metadata. 
+    """
+    doc = fitz.open(file_path)
+    metadata = doc.metadata
+        
+    #format, encryption, title, author, subject, keywords, creator, producer, creationDate, modDate, trapped
+    
+    secondary = read_single(file_path)
+    
+    #there's a chance that these never evaluate to false. Unsure why that is 
+    if metadata['author'] == '' and secondary['author'] != '': 
+        metadata['author'] == secondary['author']
+        
+    del secondary['author']
+
+    if metadata['keywords'] == '' and secondary['keywords'] != '': 
+        metadata['keywords'] == secondary['keywords']
+
+    del secondary['keywords']
+        
+    metadata.update(secondary) 
+    
+   # if metadata['author'] == 'null': 
+        #metadata['author'] == read.read_file(filepath)
+    print(metadata)
+    return metadata 
+
+def results(paper_doi, pdf_path):
+
+    #paper_doi = "10.1007/s13391-015-5352-y"
+    #pdf_path = Path("s13391-015-5352-y-1.pdf")  # defining the location of the PDF file
 
     #%% Looking up info in databases
     api_lookup_results = paper_data_json_single(paper_doi)
