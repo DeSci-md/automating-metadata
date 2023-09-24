@@ -178,29 +178,20 @@ def paper_data_json_single(doi):
    
     return output_dict
 
-async def async_paper_search(query, docs, chain, output_parser):
 
+async def async_paper_search(query, docs, chain):
     """
     Async version of paper search, run question for the document concurrently with other questions
     """
-    format_instructions = output_parser.get_format_instructions()
-    out = await chain.arun(doc_text=docs, query=query, format_instructions=format_instructions)  # need to have await combined with chain.arun
-    results = output_parser.parse(out)
+    out = await chain.arun(doc_text=docs, query=query)  # need to have await combined with chain.arun
 
-    return results
+    return out
 
 async def langchain_paper_search(file_path):
 
     #%% Setup, defining framework of paper info extraction
     # Define language model to use
     llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0)
-
-    # Structured Output Schema
-    motivation_schema = ResponseSchema(name="motivation", description="This is the question or challenge that the work of this paper seeks to address.")
-    methods_schema = ResponseSchema(name="methods", description="This is the experimental methods and characterization techniques used by the authors in this paper.")
-    results_schema = ResponseSchema(name="results", description="This is a summary of the major results and conclusions obtained in the paper.")
-    figure_schema = ResponseSchema(name="figures", description="This is a comma separated list of descriptions for each figure in the paper.")
-    future_work_schema = ResponseSchema(name="future", description="This is any remaining questions or future work described by the authors in the Conclusions section of the paper.")
 
     # Defining system and human prompts with variables
     system_template = "You are a world class research assistant who produces answers based on facts. \
@@ -209,7 +200,7 @@ async def langchain_paper_search(file_path):
 
     system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)  # providing the system prompt
 
-    human_template = "{query}. {format_instructions}"
+    human_template = "{query}"
     human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 
     chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
@@ -224,20 +215,19 @@ async def langchain_paper_search(file_path):
 
     # Define all the queries and corresponding schemas in a list
     queries_schemas_docs = [
-        ("What are the experimental methods and techniques used by the authors? This can include ways that data was collected as well as ways the samples were synthesized.", [methods_schema], document),
-        ("What is the scientific question, challenge, or motivation that the authors are trying to address?", [motivation_schema], document),
-        ("Provide a summary of the results and discussions in the paper. What results were obtained and what conclusions were reached?", [results_schema], document),
+        ("What are the experimental methods and techniques used by the authors? This can include ways that data was collected as well as ways the samples were synthesized.", document),
+        ("What is the scientific question, challenge, or motivation that the authors are trying to address?", document),
+        ("Provide a summary of the results and discussions in the paper. What results were obtained and what conclusions were reached?", document),
         ("Provide a summary of each figure described in the paper. Your response should be a one sentence summary of the figure description, \
-         beginning with 'Fig. #  - description...', with each figure description separated by a comma. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'", [figure_schema], document),
-        ("What future work or unanswered questions are mentioned by the authors?", [future_work_schema], document),
+         beginning with 'Fig. #  - description...', with each figure description separated by a comma. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'", document),
+        ("What future work or unanswered questions are mentioned by the authors?", document),
     ]
 
     tasks = []
 
     # Run the queries concurrently using asyncio.gather
-    for query, schemas, docs in queries_schemas_docs:
-        output_parser = StructuredOutputParser.from_response_schemas(schemas)
-        task = async_paper_search(query, docs, chain, output_parser)
+    for query, docs in queries_schemas_docs:
+        task = async_paper_search(query, docs, chain)
         tasks.append(task)
 
     summary = await asyncio.gather(*tasks)
