@@ -2,3 +2,6 @@
 venv
 config.json
 logs
+
+# Additional folders to avoid pushing
+__pycache__
