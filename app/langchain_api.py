@@ -187,8 +187,13 @@ async def async_paper_search(query, docs, chain):
 
     return out
 
-async def langchain_paper_search(file_path):
 
+async def langchain_paper_search(file_path):
+    """
+    Analyzes a pdf document defined by file_path and asks questions regarding the text
+    using LLM's.
+    The results are returned as unstructured text in a dictionary.
+    """
     #%% Setup, defining framework of paper info extraction
     # Define language model to use
     llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k", temperature=0)
@@ -233,10 +238,15 @@ async def langchain_paper_search(file_path):
     summary = await asyncio.gather(*tasks)
 
     # Extracting individual elements from the summary
-    # title, authors, materials, methods, motive, results, figures, future, tags = summary
-    methods, motive, results, figures, future = summary
+    methods, motive, results, figures, future = summary  #NOTE: output to variables in strings
 
-    llm_output = motive | methods | figures | results | future
+    llm_output = {
+        "motive": motive,
+        "method": methods,
+        "figures": figures,
+        "results": results,
+        "future": future
+    }
 
     return llm_output
 
