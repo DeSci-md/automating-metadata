@@ -251,6 +251,17 @@ async def langchain_paper_search(file_path):
     return llm_output
 
 
+def jsonformer_structure(unstructured_dict):
+    """
+    Take in unstructured text contained in the dictionary output of langchain_paper_search
+    and return structured json-ld using huggingface combined with jsonformer
+    """
+    structured_dict = 1
+    #TODO: make code to do this
+
+    return structured_dict
+
+
 def pdfprocess(file_path): 
     results = pdfMetadata(file_path)
     print(results)
