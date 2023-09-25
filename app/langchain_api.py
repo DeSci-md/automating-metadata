@@ -316,3 +316,14 @@ def results(paper_doi, pdf_path):
     final_output = api_lookup_results | llm_output
 
 
+#%% Main, general case for testing
+if __name__ == "__main__":
+    print("Starting code run...")
+    cwd = Path(__file__)
+    pdf_folder = cwd.parents[1].joinpath('.test_pdf')  # path to the folder containing the pdf to test
+
+    # File name of pdf in the .test_pdf folder for testing with code
+    file_name = "1087792.pdf"
+    pdf_file_path = pdf_folder.joinpath(file_name)
+
+    llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
