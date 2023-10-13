@@ -26,7 +26,7 @@ import fitz #pdf reading library
 import json
 from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers, Funders
 import pyalex
-from demo import read_single
+from demo import read_single 
 
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
@@ -250,8 +250,6 @@ async def langchain_paper_search(file_path):
 
     llm_output['figures'] = llm_output['figures'].split("\n")  # using newline character as a split point.
 
-
-    return structured_dict
     return llm_output
 
 
