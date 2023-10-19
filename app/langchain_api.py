@@ -26,7 +26,7 @@ import fitz #pdf reading library
 import json
 from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers, Funders
 import pyalex
-from demo import read_single
+from demo import read_single 
 
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
@@ -224,7 +224,7 @@ async def langchain_paper_search(file_path):
         ("What is the scientific question, challenge, or motivation that the authors are trying to address?", document),
         ("Provide a summary of the results and discussions in the paper. What results were obtained and what conclusions were reached?", document),
         ("Provide a summary of each figure described in the paper. Your response should be a one sentence summary of the figure description, \
-         beginning with 'Fig. #  - description...', with each figure description separated by a comma. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'", document),
+         beginning with 'Fig. #  - description...'. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'. Separate each figure description by a single newline.", document),
         ("What future work or unanswered questions are mentioned by the authors?", document),
     ]
 
@@ -248,18 +248,9 @@ async def langchain_paper_search(file_path):
         "future": future
     }
 
+    llm_output['figures'] = llm_output['figures'].split("\n")  # using newline character as a split point.
+
     return llm_output
-
-
-def jsonformer_structure(unstructured_dict):
-    """
-    Take in unstructured text contained in the dictionary output of langchain_paper_search
-    and return structured json-ld using huggingface combined with jsonformer
-    """
-    structured_dict = 1
-    #TODO: make code to do this
-
-    return structured_dict
 
 
 def pdfprocess(file_path): 
@@ -334,7 +325,17 @@ if __name__ == "__main__":
     pdf_folder = cwd.parents[1].joinpath('.test_pdf')  # path to the folder containing the pdf to test
 
     # File name of pdf in the .test_pdf folder for testing with code
-    file_name = "1087792.pdf"
+    file_name = "1087792.pdf"  # test 1
+    # file_name = "Zhao et al_2023_Homonuclear dual-atom catalysts embedded on N-doped graphene for highly.pdf"  # test 2, too long
+    # file_name = "Ren_Dong_2022_Direct electrohydrodynamic printing of aqueous silver nanowires ink on.pdf"  # test 3
+    # file_name = "Chang et al_2022_Few-layer graphene as an additive in negative electrodes for lead-acid batteries.pdf"  # test 4
+    # file_name = "Zhang et al_2019_Highly Stretchable Patternable Conductive Circuits and Wearable Strain Sensors.pdf"  # test 5
+    # file_name = "Jepsen_2019_Phase Retrieval in Terahertz Time-Domain Measurements.pdf"  # test 6
+
     pdf_file_path = pdf_folder.joinpath(file_name)
 
     llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
+
+    print(llm_output['figures'])
+
+    print("Script completed")
