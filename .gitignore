@@ -2,5 +2,8 @@
 venv
 config.json
 logs
+__pycache__
+.env
+.test_pdf
 Archive/
 
