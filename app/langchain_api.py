@@ -6,12 +6,16 @@ Can you modify the below python code to incorporate asyncio to allow concurrent 
 """
 from pathlib import Path  # directory setting
 import asyncio # For async asking of prompts
-import httpx  # for elsevier and semantic scholar api calls
+#import httpx  # for elsevier and semantic scholar api calls
 import json
+
+import requests
+import io
+import PyPDF2
 
 from habanero import Crossref, cn  # Crossref database accessing
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
-from langchain.document_loaders import PyPDFLoader, PyMuPDFLoader # document loader import
+from langchain.document_loaders import PyPDFLoader, PyMuPDFLoader, OnlinePDFLoader # document loader import
 from langchain.chat_models import ChatOpenAI  # LLM import
 from langchain import LLMChain  # Agent import
 from langchain.output_parsers import (  # Structuring the output format from the LLM questions
@@ -35,7 +39,7 @@ sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PD
 
 from demo import read_single
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
-from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers, Funders
+from pyalex import Works #Authors, Sources, Institutions, Concepts, Publishers, Funders
 import pyalex
 pyalex.config.email = "ellie@desci.com"
 
@@ -43,9 +47,63 @@ pyalex.config.email = "ellie@desci.com"
 load_dotenv(find_dotenv())
 
 def openalex(doi): 
-    dict = Works()[doi]
-    return dict
+    works = Works()[doi]
+    #specific queries are works['authorships'] and works['license']
+    return works
+def getdpidpdf(): 
+    #Stupid ping - I will need to write a function for this - but might want to take it from Sina
+    
+    url = "https://beta.dpid.org/api/v1/dpid"
+    response = requests.get(url)
+    response_json = response.json()
+    node = response_json[0]['dpid']
+    base = "https://beta.dpid.org/"
+    root = "?raw"
 
+    #return most recent node JSON
+    response2 = requests.get(base+node+root).json()
+    
+    #get the CID associated with the Payload + PDF object
+    try:
+        pdf_path = next(item['payload']['path'] for item in response2['components'] if item['type'] == 'pdf')
+        print(pdf_path)
+        
+        pdf_url = next(item['payload']['url'] for item in response2['components'] if item['type'] == 'pdf')
+
+    except: 
+        print("No PDF object found")
+    
+    url = base+pdf_path+"?raw"
+    print(url)
+    ipfs="https://ipfs.desci.com/ipfs/"+pdf_url
+    print(ipfs)
+  
+    response3 = requests.get(ipfs) 
+    
+    pdf_file = io.BytesIO(response3.content)
+
+    try:
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+    # Your PDF extraction code here
+    except PyPDF2.errors.PdfReadError as e:
+        print(f"Error extracting PDF: {e}")
+    
+    
+    pdf_writer = PyPDF2.PdfWriter()
+
+    # Assuming there's only one page in the PDF, if not, loop through pages.
+    for page_num in range(len(pdf_reader.pages)):
+        page = pdf_reader.pages[page_num]
+        pdf_writer.add_page(page)
+    
+    #save the PDF
+    with open('/Users/desot1/Dev/automating-metadata/report.pdf', 'wb') as pdf_output:
+        pdf_writer.write(pdf_output)
+
+    """pdf_loader = UnstructuredPDFLoader('/Users/desot1/Dev/automating-metadata/report.pdf')
+    text_content = pdf_loader.pdf_to_text(response3)
+    print(text_content)"""
+    return pdf_output.name
 def paper_data_json_single(doi):
     """
     Create a json output file for a single paper using the inputed identifier.
@@ -205,6 +263,8 @@ async def langchain_paper_search(file_path):
     results_schema = ResponseSchema(name="results", description="This is a summary of the major results and conclusions obtained in the paper.")
     figure_schema = ResponseSchema(name="figures", description="This is a comma separated list of descriptions for each figure in the paper.")
     future_work_schema = ResponseSchema(name="future", description="This is any remaining questions or future work described by the authors in the Conclusions section of the paper.")
+    title_schema = ResponseSchema(name="title", description="This is a list of the authors of this paper.")
+
 
     # Defining system and human prompts with variables
     system_template = "You are a world class research assistant who produces answers based on facts. \
@@ -234,6 +294,7 @@ async def langchain_paper_search(file_path):
         ("Provide a summary of each figure described in the paper. Your response should be a one sentence summary of the figure description, \
          beginning with 'Fig. #  - description...', with each figure description separated by a comma. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'", [figure_schema], document),
         ("What future work or unanswered questions are mentioned by the authors?", [future_work_schema], document),
+        ("Who is(are) the author(s) of this paper?", [title_schema], document)
     ]
 
     tasks = []
@@ -248,9 +309,9 @@ async def langchain_paper_search(file_path):
 
     # Extracting individual elements from the summary
     # title, authors, materials, methods, motive, results, figures, future, tags = summary
-    methods, motive, results, figures, future = summary
+    methods, motive, results, figures, future, title = summary
 
-    llm_output = motive | methods | figures | results | future
+    llm_output = motive | methods | figures | results | future | title
 
     return llm_output
 
@@ -315,3 +376,9 @@ def results(paper_doi, pdf_path):
 
     # Constructing the final output
     final_output = api_lookup_results | llm_output
+
+if __name__=="__main__": 
+    llm_output = asyncio.run(langchain_paper_search(getdpidpdf()))
+    #print(llm_output)
+    #print(openalex("https://doi.org/http://dx.doi.org/10.18725/OPARU-3732"))
+    
