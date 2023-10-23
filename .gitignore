@@ -4,6 +4,6 @@ config.json
 logs
 __pycache__
 .env
-.test_pdf
+#.test_pdf
 Archive/
 

@@ -29,12 +29,6 @@ from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers
 import pyalex
 #from demo import read_single 
 
-#TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
-#TODO: Combine Paper_data_Json_Single + Open Alex -> into a database_search -> to get external data. - Henry
-#TODO: combine async_paper_search into langchain_paper_search -> trivial -> Henry
-#TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
-#TODO: Dockerize -> Ellie. 
-
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
 pyalex.config.email = "ellie@desci.com"
@@ -46,6 +40,7 @@ load_dotenv(find_dotenv())
 def openalex(doi): 
     dict = Works()[doi]
     return dict
+
 
 def paper_data_json_single(doi):
     """
@@ -184,6 +179,7 @@ def paper_data_json_single(doi):
    
     return output_dict
 
+
 async def async_paper_search(query, docs, chain):
     """
     Async version of paper search, run question for the document concurrently with other questions
@@ -191,6 +187,7 @@ async def async_paper_search(query, docs, chain):
     out = await chain.arun(doc_text=docs, query=query)  # need to have await combined with chain.arun
 
     return out
+
 
 async def langchain_paper_search(file_path):
     """
@@ -314,10 +311,72 @@ def create_metadata_json(data):
     return metadata_list
 
 
+def pdfprocess(file_path): 
+    results = pdfMetadata(file_path)
+    print(results)
+    #langchain = asyncio.run(langchain_paper_search(file_path))
+    #print(langchain)
+    return results    
+
+def pdfMetadata(file_path): 
+    """
+    This returns basic descriptive metadata for the PDF. 
+
+    VARS: 
+        Filepath: the path of the file you want to upload. 
+
+    RETURNS: 
+        metadata: This is the basic function of the Fitz library. 
+        It scrapes the PDF for any embedded metadata. 
+    """
+    doc = fitz.open(file_path)
+    metadata = doc.metadata
+        
+    #format, encryption, title, author, subject, keywords, creator, producer, creationDate, modDate, trapped
+    
+    secondary = read_single(file_path)
+    
+    #there's a chance that these never evaluate to false. Unsure why that is 
+    if metadata['author'] == '' and secondary['author'] != '': 
+        metadata['author'] == secondary['author']
+        
+    del secondary['author']
+
+    if metadata['keywords'] == '' and secondary['keywords'] != '': 
+        metadata['keywords'] == secondary['keywords']
+
+    del secondary['keywords']
+        
+    metadata.update(secondary) 
+    
+   # if metadata['author'] == 'null': 
+        #metadata['author'] == read.read_file(filepath)
+    print(metadata)
+    return metadata 
+
+
+def results(paper_doi, pdf_path):
+
+    #paper_doi = "10.1007/s13391-015-5352-y"
+    #pdf_path = Path("s13391-015-5352-y-1.pdf")  # defining the location of the PDF file
+
+    #%% Looking up info in databases
+    api_lookup_results = paper_data_json_single(paper_doi)
+
+    #%% Paper analysis using LangChain
+    # Setting up the input and output folders
+    # Load in API keys from .env file
+    load_dotenv(find_dotenv())
+
+    # Running summarization for a single document
+    llm_output = asyncio.run(langchain_paper_search(pdf_path))
+
+    # Constructing the final output
+    final_output = api_lookup_results | llm_output
+
+
 #%% Main, general case for testing
 if __name__ == "__main__":
-    #TODO: Update to be relevant. 
-
     print("Starting code run...")
     cwd = Path(__file__)
     pdf_folder = cwd.parents[1] #.joinpath('.test_pdf')  # path to the folder containing the pdf to test
