@@ -2,8 +2,8 @@
 venv
 config.json
 logs
-
-# Additional folders to avoid pushing
 __pycache__
 .env
-.test_pdf
+#.test_pdf
+Archive/
+
