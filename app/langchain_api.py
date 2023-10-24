@@ -12,7 +12,7 @@ import asyncio # For async asking of prompts
 import json
 
 import httpx  # for elsevier and semantic scholar api calls
-#from habanero import Crossref, cn  # Crossref database accessing
+from habanero import Crossref, cn  # Crossref database accessing
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
 from langchain.document_loaders import PyPDFLoader # document loader import
 from langchain.chat_models import ChatOpenAI  # LLM import
@@ -31,7 +31,6 @@ import pyalex
 
 #TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
 #TODO: Combine Paper_data_Json_Single + Open Alex -> into a database_search -> to get external data. - Henry
-#TODO: combine async_paper_search into langchain_paper_search -> trivial -> Henry
 #TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
 #TODO: Dockerize -> Ellie. 
 
@@ -184,13 +183,6 @@ def paper_data_json_single(doi):
    
     return output_dict
 
-async def async_paper_search(query, docs, chain):
-    """
-    Async version of paper search, run question for the document concurrently with other questions
-    """
-    out = await chain.arun(doc_text=docs, query=query)  # need to have await combined with chain.arun
-
-    return out
 
 async def langchain_paper_search(file_path):
     """
@@ -238,7 +230,8 @@ async def langchain_paper_search(file_path):
 
     # Run the queries concurrently using asyncio.gather
     for query, docs in queries_schemas_docs:
-        task = async_paper_search(query, docs, chain)
+        task = chain.arun(doc_text=docs, query=query)
+        # task = async_paper_search(query, docs, chain)
         tasks.append(task)
 
     summary = await asyncio.gather(*tasks)
@@ -334,8 +327,6 @@ if __name__ == "__main__":
 
     llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
    
-    #print(type(llm_output['authors']))
-
      
     json_result = create_metadata_json(llm_output)
     for item in json_result:
