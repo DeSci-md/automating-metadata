@@ -42,10 +42,6 @@ pyalex.config.email = "ellie@desci.com"
 load_dotenv(find_dotenv())
 
 
-def openalex(doi): 
-    dict = Works()[doi]
-    return dict
-
 def paper_data_json_single(doi):
     """
     Create a json output file for a single paper using the inputed identifier.
@@ -77,7 +73,7 @@ def paper_data_json_single(doi):
     type = r['message']['type']
     pub_name = r['message']['container-title'][0]
     pub_date = r['message']['published']['date-parts'][0]
-    #subject = r['message']['subject']
+    subject = r['message']['subject']
 
     inst_names = []  # handling multiple colleges, universities
     authors = []  # for handling multiple authors
@@ -140,23 +136,39 @@ def paper_data_json_single(doi):
     json_string = r.text
     d = json.loads(json_string)
 
-    paper_id = d['paperId']
+    try:
+        paper_id = d['paperId']
+    except:
+        paper_id = "Error in Semantic Scholar lookup"
 
     field_of_study = []
-    if d['fieldsOfStudy'] is None:
-        field_of_study = 'None'
-    else:
-        for i in d['fieldsOfStudy']:
-            field_of_study.append(i)
-    if d['tldr'] is None:
-        tldr = 'None'
-    else:
-        tldr = d['tldr']
-    
-    if d['openAccessPdf'] is None:
-        openaccess_pdf = 'None'
-    else:
-        openaccess_pdf = d['openAccessPdf']['url']
+    try:
+        if d['fieldsOfStudy'] is None:
+            field_of_study = 'None'
+        else:
+            for i in d['fieldsOfStudy']:
+                field_of_study.append(i)
+    except:
+        field_of_study = "None, lookup error"
+
+    try:
+        if d['tldr'] is None:
+            tldr = 'None'
+        else:
+            tldr = d['tldr']
+    except:
+        tldr = "None, lookup error"
+
+    try:
+        if d['openAccessPdf'] is None:
+            openaccess_pdf = 'None'
+        else:
+            openaccess_pdf = d['openAccessPdf']['url']
+    except:
+        openaccess_pdf = "None, lookup error"
+
+    # OpenAlex accessing
+    openalex_results = Works()[doi]
 
 
     #%% Constructing output dictionary
@@ -164,19 +176,19 @@ def paper_data_json_single(doi):
         # Paper Metadata
         'title':title,
         'authors':authors,
-        #'abstract':abstract,
-        #'scopus_id':scopus_id,
+        'abstract':abstract,
+        'scopus_id':scopus_id,
         'paperId':paper_id,
         'publication_name':pub_name,
         'publish_date':pub_date,
         'type':type,
-        #'keywords':keywords,
-        #'subject':subject,
+        'keywords':keywords,
+        'subject':subject,
         'fields_of_study':field_of_study,
         'institution_names':inst_names,
         'references':refs,
         'tldr':tldr,
-        #'original_text':original_text,
+        'original_text':original_text,
         'openAccessPdf':openaccess_pdf,
         'URL_link':url_link 
     }
@@ -231,7 +243,6 @@ async def langchain_paper_search(file_path):
     # Run the queries concurrently using asyncio.gather
     for query, docs in queries_schemas_docs:
         task = chain.arun(doc_text=docs, query=query)
-        # task = async_paper_search(query, docs, chain)
         tasks.append(task)
 
     summary = await asyncio.gather(*tasks)
@@ -323,15 +334,21 @@ if __name__ == "__main__":
     # file_name = "Zhang et al_2019_Highly Stretchable Patternable Conductive Circuits and Wearable Strain Sensors.pdf"  # test 5
     # file_name = "Jepsen_2019_Phase Retrieval in Terahertz Time-Domain Measurements.pdf"  # test 6
 
-    pdf_file_path = pdf_folder.joinpath(file_name)
+    # pdf_file_path = pdf_folder.joinpath(file_name)
 
-    llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
+    # llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
    
-     
-    json_result = create_metadata_json(llm_output)
-    for item in json_result:
-        print(json.dumps(item, indent=4))
+    doi = "https://doi.org/10.1002/adma.202208113"
+    lookup_results = paper_data_json_single(doi)
 
-    print(json_result)
+    print(lookup_results)
+     
+    # json_result = create_metadata_json(llm_output)
+    # for item in json_result:
+    #     print(json.dumps(item, indent=4))
+
+    # print(json_result)
+
+    print(lookup_results)
 
     print("Script completed")
