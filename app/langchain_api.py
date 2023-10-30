@@ -67,13 +67,36 @@ def paper_data_json_single(doi):
 
 
     #%% Info from Crossref
-    r = cr.works(ids = f'{doi}')  # Crossref search using DOI, "r" for request
+    try:
+        r = cr.works(ids = f'{doi}')  # Crossref search using DOI, "r" for request
+    except requests.exceptions.HTTPError as e:
+        print(f"CrossRef DOI lookup returned error: {e}\n")
 
-    title = r['message']['title'][0]
-    type = r['message']['type']
-    pub_name = r['message']['container-title'][0]
-    pub_date = r['message']['published']['date-parts'][0]
-    subject = r['message']['subject']
+    try:
+        title = r['message']['title'][0]
+    except:
+        title = f"None, Crossref Error"
+
+    try:
+        type = r['message']['type']
+    except:
+        type = "None, Crossref Error"
+
+    try:
+        pub_name = r['message']['container-title'][0]
+    except:
+        pub_name = "None, Crossref Error"
+
+    try:
+        pub_date = r['message']['published']['date-parts'][0]
+    except:
+        pub_date = "None, Crossref Error"
+
+    try:
+        subject = r['message']['subject']
+    except:
+        subject = "None, Crossref Error"
+
 
     inst_names = []  # handling multiple colleges, universities
     authors = []  # for handling multiple authors
@@ -112,19 +135,26 @@ def paper_data_json_single(doi):
     d = json.loads(json_string)  # "d" for dictionary
 
     try:
-        d['full-text-retrieval-response']
         scopus_id = d['full-text-retrieval-response']['scopus-id']
-        abstract = d['full-text-retrieval-response']['coredata']['dc:description']
-
-        """keywords = []
-        for i in d['full-text-retrieval-response']['coredata']['dcterms:subject']:
-            keywords.append(i['$'])"""
-
-        original_text = d['full-text-retrieval-response']['originalText']
     except:
         scopus_id = 'None, elsevier error'
+
+    try:
+        abstract = d['full-text-retrieval-response']['coredata']['dc:description']
+    except:
         abstract = 'None, elsevier error'
+
+    try:
+        keywords = []
+        for i in d['full-text-retrieval-response']['coredata']['dcterms:subject']:
+            keywords.append(i['$'])
+
+    except:
         keywords = ['None, elsevier error']
+
+    try:
+        original_text = d['full-text-retrieval-response']['originalText']
+    except:
         original_text = 'None, elsevier error'
     
 
@@ -139,7 +169,7 @@ def paper_data_json_single(doi):
     try:
         paper_id = d['paperId']
     except:
-        paper_id = "Error in Semantic Scholar lookup"
+        paper_id = "None, Semantic Scholar lookup error"
 
     field_of_study = []
     try:
@@ -149,7 +179,7 @@ def paper_data_json_single(doi):
             for i in d['fieldsOfStudy']:
                 field_of_study.append(i)
     except:
-        field_of_study = "None, lookup error"
+        field_of_study = "None, Semantic Scholar lookup error"
 
     try:
         if d['tldr'] is None:
@@ -157,7 +187,7 @@ def paper_data_json_single(doi):
         else:
             tldr = d['tldr']
     except:
-        tldr = "None, lookup error"
+        tldr = "None, Semantic Scholar lookup error"
 
     try:
         if d['openAccessPdf'] is None:
@@ -165,11 +195,25 @@ def paper_data_json_single(doi):
         else:
             openaccess_pdf = d['openAccessPdf']['url']
     except:
-        openaccess_pdf = "None, lookup error"
+        openaccess_pdf = "None, Semantic Scholar lookup error"
 
-    # OpenAlex accessing
+    # OpenAlex accessing as backup info for the previous tools
     openalex_results = Works()[doi]
+    try:
+        openalex_id = openalex_results['id']
+    except: openalex_id = "None, OpenAlex Lookup error"
 
+    if title == "None, Crossref Error":  # attempt replacing error title from cross with title from openalex
+        try:
+            title = openalex_results['title']
+        except:
+            pass
+
+    if keywords == "None, Crossref Error":  # attempt replacing error title from cross with title from openalex
+        try:
+            title = openalex_results['title']
+        except:
+            pass
 
     #%% Constructing output dictionary
     output_dict = {
@@ -190,7 +234,8 @@ def paper_data_json_single(doi):
         'tldr':tldr,
         'original_text':original_text,
         'openAccessPdf':openaccess_pdf,
-        'URL_link':url_link 
+        'URL_link':url_link,
+        'openalex_id': openalex_id
     }
    
     return output_dict
