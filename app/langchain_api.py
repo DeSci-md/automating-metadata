@@ -12,7 +12,7 @@ import asyncio # For async asking of prompts
 import json
 
 import httpx  # for elsevier and semantic scholar api calls
-#from habanero import Crossref, cn  # Crossref database accessing
+from habanero import Crossref, cn  # Crossref database accessing
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
 from langchain.document_loaders import PyPDFLoader # document loader import
 from langchain.chat_models import ChatOpenAI  # LLM import
@@ -31,7 +31,6 @@ import pyalex
 
 #TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
 #TODO: Combine Paper_data_Json_Single + Open Alex -> into a database_search -> to get external data. - Henry
-#TODO: combine async_paper_search into langchain_paper_search -> trivial -> Henry
 #TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
 #TODO: Dockerize -> Ellie. 
 
@@ -42,10 +41,6 @@ pyalex.config.email = "ellie@desci.com"
 # Load in API keys from .env file
 load_dotenv(find_dotenv())
 
-
-def openalex(doi): 
-    dict = Works()[doi]
-    return dict
 
 def paper_data_json_single(doi):
     """
@@ -72,13 +67,36 @@ def paper_data_json_single(doi):
 
 
     #%% Info from Crossref
-    r = cr.works(ids = f'{doi}')  # Crossref search using DOI, "r" for request
+    try:
+        r = cr.works(ids = f'{doi}')  # Crossref search using DOI, "r" for request
+    except requests.exceptions.HTTPError as e:
+        print(f"CrossRef DOI lookup returned error: {e}\n")
 
-    title = r['message']['title'][0]
-    type = r['message']['type']
-    pub_name = r['message']['container-title'][0]
-    pub_date = r['message']['published']['date-parts'][0]
-    #subject = r['message']['subject']
+    try:
+        title = r['message']['title'][0]
+    except:
+        title = f"None, Crossref Error"
+
+    try:
+        type = r['message']['type']
+    except:
+        type = "None, Crossref Error"
+
+    try:
+        pub_name = r['message']['container-title'][0]
+    except:
+        pub_name = "None, Crossref Error"
+
+    try:
+        pub_date = r['message']['published']['date-parts'][0]
+    except:
+        pub_date = "None, Crossref Error"
+
+    try:
+        subject = r['message']['subject']
+    except:
+        subject = "None, Crossref Error"
+
 
     inst_names = []  # handling multiple colleges, universities
     authors = []  # for handling multiple authors
@@ -117,19 +135,26 @@ def paper_data_json_single(doi):
     d = json.loads(json_string)  # "d" for dictionary
 
     try:
-        d['full-text-retrieval-response']
         scopus_id = d['full-text-retrieval-response']['scopus-id']
-        abstract = d['full-text-retrieval-response']['coredata']['dc:description']
-
-        """keywords = []
-        for i in d['full-text-retrieval-response']['coredata']['dcterms:subject']:
-            keywords.append(i['$'])"""
-
-        original_text = d['full-text-retrieval-response']['originalText']
     except:
         scopus_id = 'None, elsevier error'
+
+    try:
+        abstract = d['full-text-retrieval-response']['coredata']['dc:description']
+    except:
         abstract = 'None, elsevier error'
+
+    try:
+        keywords = []
+        for i in d['full-text-retrieval-response']['coredata']['dcterms:subject']:
+            keywords.append(i['$'])
+
+    except:
         keywords = ['None, elsevier error']
+
+    try:
+        original_text = d['full-text-retrieval-response']['originalText']
+    except:
         original_text = 'None, elsevier error'
     
 
@@ -141,56 +166,80 @@ def paper_data_json_single(doi):
     json_string = r.text
     d = json.loads(json_string)
 
-    paper_id = d['paperId']
+    try:
+        paper_id = d['paperId']
+    except:
+        paper_id = "None, Semantic Scholar lookup error"
 
     field_of_study = []
-    if d['fieldsOfStudy'] is None:
-        field_of_study = 'None'
-    else:
-        for i in d['fieldsOfStudy']:
-            field_of_study.append(i)
-    if d['tldr'] is None:
-        tldr = 'None'
-    else:
-        tldr = d['tldr']
-    
-    if d['openAccessPdf'] is None:
-        openaccess_pdf = 'None'
-    else:
-        openaccess_pdf = d['openAccessPdf']['url']
+    try:
+        if d['fieldsOfStudy'] is None:
+            field_of_study = 'None'
+        else:
+            for i in d['fieldsOfStudy']:
+                field_of_study.append(i)
+    except:
+        field_of_study = "None, Semantic Scholar lookup error"
 
+    try:
+        if d['tldr'] is None:
+            tldr = 'None'
+        else:
+            tldr = d['tldr']
+    except:
+        tldr = "None, Semantic Scholar lookup error"
+
+    try:
+        if d['openAccessPdf'] is None:
+            openaccess_pdf = 'None'
+        else:
+            openaccess_pdf = d['openAccessPdf']['url']
+    except:
+        openaccess_pdf = "None, Semantic Scholar lookup error"
+
+    # OpenAlex accessing as backup info for the previous tools
+    openalex_results = Works()[doi]
+    try:
+        openalex_id = openalex_results['id']
+    except: openalex_id = "None, OpenAlex Lookup error"
+
+    if title == "None, Crossref Error":  # attempt replacing error title from cross with title from openalex
+        try:
+            title = openalex_results['title']
+        except:
+            pass
+
+    if keywords == "None, Crossref Error":  # attempt replacing error title from cross with title from openalex
+        try:
+            title = openalex_results['title']
+        except:
+            pass
 
     #%% Constructing output dictionary
     output_dict = {
         # Paper Metadata
         'title':title,
         'authors':authors,
-        #'abstract':abstract,
-        #'scopus_id':scopus_id,
+        'abstract':abstract,
+        'scopus_id':scopus_id,
         'paperId':paper_id,
         'publication_name':pub_name,
         'publish_date':pub_date,
         'type':type,
-        #'keywords':keywords,
-        #'subject':subject,
+        'keywords':keywords,
+        'subject':subject,
         'fields_of_study':field_of_study,
         'institution_names':inst_names,
         'references':refs,
         'tldr':tldr,
-        #'original_text':original_text,
+        'original_text':original_text,
         'openAccessPdf':openaccess_pdf,
-        'URL_link':url_link 
+        'URL_link':url_link,
+        'openalex_id': openalex_id
     }
    
     return output_dict
 
-async def async_paper_search(query, docs, chain):
-    """
-    Async version of paper search, run question for the document concurrently with other questions
-    """
-    out = await chain.arun(doc_text=docs, query=query)  # need to have await combined with chain.arun
-
-    return out
 
 async def langchain_paper_search(file_path):
     """
@@ -238,7 +287,7 @@ async def langchain_paper_search(file_path):
 
     # Run the queries concurrently using asyncio.gather
     for query, docs in queries_schemas_docs:
-        task = async_paper_search(query, docs, chain)
+        task = chain.arun(doc_text=docs, query=query)
         tasks.append(task)
 
     summary = await asyncio.gather(*tasks)
@@ -330,17 +379,21 @@ if __name__ == "__main__":
     # file_name = "Zhang et al_2019_Highly Stretchable Patternable Conductive Circuits and Wearable Strain Sensors.pdf"  # test 5
     # file_name = "Jepsen_2019_Phase Retrieval in Terahertz Time-Domain Measurements.pdf"  # test 6
 
-    pdf_file_path = pdf_folder.joinpath(file_name)
+    # pdf_file_path = pdf_folder.joinpath(file_name)
 
-    llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
+    # llm_output = asyncio.run(langchain_paper_search(pdf_file_path))  # output of unstructured text in dictionary
    
-    #print(type(llm_output['authors']))
+    doi = "https://doi.org/10.1002/adma.202208113"
+    lookup_results = paper_data_json_single(doi)
 
+    print(lookup_results)
      
-    json_result = create_metadata_json(llm_output)
-    for item in json_result:
-        print(json.dumps(item, indent=4))
+    # json_result = create_metadata_json(llm_output)
+    # for item in json_result:
+    #     print(json.dumps(item, indent=4))
 
-    print(json_result)
+    # print(json_result)
+
+    print(lookup_results)
 
     print("Script completed")
