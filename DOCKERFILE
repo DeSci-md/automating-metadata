@@ -1,21 +1,14 @@
-FROM python:3.9.16-bullseye
+# Use a base image with Python installed
+FROM python:3.9
 
-ENV PROJECT_DIR /app
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-WORKDIR /app
-RUN pip install pipenv 
+# Copy the script and requirements file into the container
+COPY app/ /usr/src/app/  
 
-COPY . /app
-#requirements.txt requirements.txt
+# Install dependencies
 RUN pip install -r requirements.txt
 
-#WORKDIR ${PROJECT_DIR}
-#COPY Pipfile Pipfile.lock /app/
-
-# RUN pipenv install --system
-# RUN pipenv install --system --deploy
-EXPOSE 80
-
-# CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
-#CMD ["pipenv", "run", "flask", "run", "--host=0.0.0.0"]
-CMD ["python", "app.py"]
+# Define the command to run when the container starts
+CMD ["python", "langchain_api.py"]
