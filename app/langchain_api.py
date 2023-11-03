@@ -30,12 +30,11 @@ from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers
 import pyalex
 import PyPDF2
 import io
+#import tiktoken
 #from demo import read_single 
 
 #TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
-#TODO: Combine Paper_data_Json_Single + Open Alex -> into a database_search -> to get external data. - Henry
 #TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
-#TODO: Dockerize -> Ellie. 
 
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
@@ -43,14 +42,12 @@ pyalex.config.email = "ellie@desci.com"
 
 # Load in API keys from .env file
 load_dotenv(find_dotenv())
-import tiktoken
+
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
     encoding = tiktoken.encoding_for_model(encoding_name)
     num_tokens = len(encoding.encode(string))
     return num_tokens
-
-print(num_tokens_from_string("Hello world, let's test tiktoken.", "gpt-3.5-turbo"))
 
 def get_jsonld(node):
     base = "https://beta.dpid.org/"
@@ -96,15 +93,28 @@ def get_pdf_text(node):
         # Initialize text
         pdf_text = ""
         
-        # Limit processing to 7 pages
-        num_pages = min(len(pdf_file.pages), 7)
-        
+        # Limit processing to under the relevant token limit
+        num_pages = len(pdf_file.pages)
+        pdf_word_count = 0
+
         for i in range(num_pages):
             page = pdf_file.pages[i]
             page_text = page.extract_text()
             
             if page_text is not None:
-                pdf_text += page_text
+                page_word_count = len(page_text.split())
+                total_word_count = pdf_word_count + page_word_count
+
+                if total_word_count < 16000*.5:
+                    pdf_text += page_text
+                    pdf_word_count = total_word_count
+
+                else: 
+                    break
+                 
+        if pdf_word_count < 20: 
+            print(f"Not enough information in the PDF from {url}. This could be because this PDF is rendered as an image, or doesn't have many words.")
+            return None
             
         return pdf_text
     else:
@@ -139,7 +149,7 @@ def paper_data_json_single(doi):
     try:
         r = cr.works(ids = f'{doi}')  # Crossref search using DOI, "r" for request
     except requests.exceptions.HTTPError as e:
-        print(f"CrossRef DOI lookup returned error: {e}\n")
+        print(f"None, CrossRef DOI lookup returned error: {e}\n")
 
     try:
         title = r['message']['title'][0]
@@ -165,22 +175,26 @@ def paper_data_json_single(doi):
         subject = r['message']['subject']
     except:
         subject = "None, Crossref Error"
-
-
-    inst_names = []  # handling multiple colleges, universities
-    authors = []  # for handling multiple authors
+    
+    authors_info = {}
+    inst_names = {}  # handling multiple colleges, universities
 
     for i in r['message']['author']:
-        authors.append(i['given'] + ' ' + i['family'])
+        author_name = i['given'] + ' ' + i['family']
         try:
-            name = (i['affiliation'][0]['name'])
-            if name not in inst_names:
-                inst_names.append(name)
+            institution = i['affiliation'][0]['name']
+            #if institution not in inst_names:
+                #inst_names.append(institution)
         except:
-            continue
+            institution = None
 
-    if len(inst_names) == 0:  # returning message if no institutions returned by Crossref, may be able to get with LLM
-        inst_names = "No institutions returned by CrossRef"
+        if institution:
+            authors_info[author_name] = institution
+        else:
+            authors_info[author_name] = "None"
+
+    if not authors_info:
+        authors_info["None"] = "None, no institutions returned by CrossRef"
 
 
     refs = []
@@ -267,35 +281,39 @@ def paper_data_json_single(doi):
         openaccess_pdf = "None, Semantic Scholar lookup error"
 
     # OpenAlex accessing as backup info for the previous tools
-    openalex_results = Works()[doi]
+    try:
+        openalex_results = Works()[doi]  # Crossref search using DOI, "r" for request
+    except requests.exceptions.HTTPError as e:
+        print(f"OpenAlex DOI lookup returned error: {e}\n")
+    
     try:
         openalex_id = openalex_results['id']
     except: 
         openalex_id = "None, OpenAlex Lookup error"
 
-    if "Error" in title:  # attempt replacing error title from cross with title from openalex
+    if "error" in title:  # attempt replacing error title from cross with title from openalex
         try:
             title = openalex_results['title']
         except:
             pass
-    if "Error" in type:  # attempt replacing error keywords from cross with title from openalex
+    if "error" in type:  # attempt replacing error keywords from cross with title from openalex
         try:
             type = openalex_results['type']
         except:
             pass
-    if "Error" in pub_name:  # attempt replacing error keywords from cross with title from openalex
+    if "error" in pub_name:  # attempt replacing error keywords from cross with title from openalex
         try:
             pub_name = openalex_results['primary_location']
         except:
             pass
 
-    if "Error" in pub_date:  # attempt replacing error keywords from cross with title from openalex
+    if "error" in pub_date:  # attempt replacing error keywords from cross with title from openalex
         try:
             pub_date = openalex_results['publication_date']
         except:
             pass
 
-    if "Error" in keywords:  # attempt replacing error keywords from cross with title from openalex
+    if "error" in keywords:  # attempt replacing error keywords from cross with title from openalex
         try:
             title = openalex_results['title']
         except:
@@ -309,15 +327,15 @@ def paper_data_json_single(doi):
     output_dict = {
         # Paper Metadata
         'title':title,
-        'authors':authors,
+        'authors':authors_info,
         'abstract':abstract,
         'scopus_id':scopus_id,
         'paperId':paper_id,
-        'publication_name':pub_name,
-        'publish_date':pub_date,
+        'publisher':pub_name,
+        'datePublished':pub_date,
         'type':type,
         'keywords':keywords,
-        'subject':subject,
+        'about':subject,
         'fields_of_study':field_of_study,
         'institution_names':inst_names,
         'references':refs,
@@ -326,9 +344,9 @@ def paper_data_json_single(doi):
         'openAccessPdf':openaccess_pdf,
         'URL_link': url_link,
         'openalex_id': openalex_id,
-        'openaccess': openaccess
+        #'openaccess': openaccess
     }
-   
+    print(output_dict)
     return output_dict
 
 async def langchain_paper_search(node):
@@ -406,6 +424,36 @@ async def langchain_paper_search(node):
     return llm_output
 
 def get_orcid(authors): 
+    orcid_info = {}  # Dictionary to store author information
+    
+    for author in authors: 
+        try: 
+            url = "https://api.openalex.org/autocomplete/authors?q=" + author
+            response = json.loads(requests.get(url).text)
+        except Exception as e:  # Added variable 'e' to catch the exception
+            print(f"OpenAlex ORCID lookup returned error: {e}\n")
+            continue  # Skip to the next author
+        
+        if response["meta"]["count"] == 1: 
+            orcid = response["results"][0]["external_id"]
+            affiliation = response["results"][0]["hint"]
+        elif response["meta"]["count"] == 0:
+            print("None, There are no OrcID suggestions for this author")
+            continue  # Skip to the next author
+        else: 
+            orcid = response["results"][0]["external_id"]
+            affiliation = response["results"][0]["hint"]
+
+        author_info = {
+            "orcid": orcid,
+            "affiliation": affiliation
+        }
+
+        orcid_info[author] = author_info
+
+    return orcid_info
+
+#def get_orcid(authors): 
     orcid = []
     author_info = {}   
 
@@ -420,7 +468,7 @@ def get_orcid(authors):
             orcid = response["results"][0]["external_id"]
             author_info[author] = {"orcid": orcid, "affiliation":response["results"][0]["hint"]}
         elif response["meta"]["count"] == 0: #FAKE - Create a test so we can check if the return is valid. 
-            print("There are no OrcID suggestions for this author")
+            print("None, There are no OrcID suggestions for this author")
         else: 
             orcid = response["results"][0]["external_id"]
             author_info[author] = {"orcid": orcid, "affiliation": response["results"][0]["hint"]}
@@ -428,39 +476,54 @@ def get_orcid(authors):
 
     return author_info
 
+def check_item_filled(json_ld, name):
+    for item in json_ld["@graph"]:
+        if name in item:
+            return True
+    return False
+
 def update_json_ld(json_ld, new_data):
     # Process author information
+    loop = 0
     for key, value in new_data.items(): 
-        if key == "authors": 
-            for author_name, author_info in new_data.get("authors", {}).items():
-                orchid = author_info.get("orcid")
-                institution = author_info.get("affiliation")
+        loop+=1
+        if "None" in value:
+            continue
+        elif key == "authors": 
+            authors = new_data.get("authors")
+
+            for author_name, author_info in authors.items():
 
                 creator_entry = {
                     "@type": "Person",
                     "name": author_name
                 }
-
-                if orchid:
-                    creator_entry["@id"] = {"@id": orchid}
-
-                if institution:
-                    creator_entry["affiliation"] = institution
+                if author_info is dict: 
+                    orchid = author_info.get("orcid")
+                    organization = author_info.get("affiliation")
+                    
+                    if orchid:
+                        creator_entry["@id"] = orchid
+                    if organization:
+                        creator_entry["organization"] = organization
+                
 
                 json_ld["@graph"].append(creator_entry)
                 json_ld["@graph"][1]["creator"].append(creator_entry)
         else:
             json_ld["@graph"][1][key.lower()] = value
+            print("I'm adding: " + str(value))
 
-        return json_ld
+        print(loop)
+    return json_ld
 
 
 #%% Main, general case for testing
 if __name__ == "__main__":
     print("Starting code run...")
 
-    node = os.getenv('NODE_ENV')
-    DOI_env = os.getenv('DOI_ENV')
+    node = "46" #os.getenv('NODE_ENV')
+    DOI_env = "10.3847/0004-637X/828/1/46" #os.getenv('DOI_ENV')
     
     if node is not None:
         print(f"NODE_ENVIRONMENT is set to: {node}")
@@ -472,13 +535,14 @@ if __name__ == "__main__":
     if DOI_env: 
         lookup_results = paper_data_json_single(DOI_env)
         updated_json_ld = update_json_ld(json_ld, lookup_results)
+        
     else: 
         updated_json_ld = json_ld
 
     llm_output = asyncio.run(langchain_paper_search(node))# output of unstructured text in dictionary
     updated_json_ld = update_json_ld(json_ld, llm_output)
    
-    #doi = "https://doi.org/10.1002/adma.202208113"
+    doi = "https://doi.org/10.1002/adma.202208113"
     
     print(updated_json_ld)
 
