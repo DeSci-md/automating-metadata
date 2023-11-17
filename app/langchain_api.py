@@ -501,7 +501,7 @@ def update_json_ld(json_ld, new_data):
                 if author_info is dict: 
                     orchid = author_info.get("orcid")
                     organization = author_info.get("affiliation")
-                    
+
                     if orchid:
                         creator_entry["@id"] = orchid
                     if organization:
@@ -522,8 +522,8 @@ def update_json_ld(json_ld, new_data):
 if __name__ == "__main__":
     print("Starting code run...")
 
-    node = "46" #os.getenv('NODE_ENV')
-    DOI_env = "10.3847/0004-637X/828/1/46" #os.getenv('DOI_ENV')
+    node = os.getenv('NODE_ENV')
+    DOI_env = os.getenv('DOI_ENV') #"10.3847/0004-637X/828/1/46"
     
     if node is not None:
         print(f"NODE_ENVIRONMENT is set to: {node}")
