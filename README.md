@@ -28,7 +28,7 @@ Make sure you have Docker installed on your machine. You can download it from [D
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/your-repository.git
+git clone https://github.com/DeSci-md/automating-metadata.git
 cd your-repository
 ```
 
