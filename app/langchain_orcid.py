@@ -67,7 +67,6 @@ def get_pdf_text(node):
     #get the CID associated with the Payload + PDF object
     try:
         pdf_path = next(item['payload']['path'] for item in manifest['components'] if item['type'] == 'pdf')
-        print(pdf_path)
         
         pdf_url = next(item['payload']['url'] for item in manifest['components'] if item['type'] == 'pdf')
 
@@ -75,9 +74,8 @@ def get_pdf_text(node):
         return "No PDF object found"
     
     url = base+pdf_path+"?raw"
-    print(url)
+    
     ipfs="https://ipfs.desci.com/ipfs/"+pdf_url
-    print(ipfs)
   
     response = requests.get(ipfs) 
     
@@ -179,26 +177,16 @@ def paper_data_json_single(doi):
     except:
         subject = "None, Crossref Error"
     
-    authors_info = {}
+    authors_info = []
 
-    for i in r['message']['author']:
-        author_name = i['given'] + ' ' + i['family']
-        author_info = {'affiliation': None, 'orcid': None}
-
-        try:
-            author_info['affiliation'] = i['affiliation'][0]['name']
-        except (KeyError, IndexError):
-            pass
-
-        try:
-            author_info['orcid'] = i['ORCID']
-        except KeyError:
-            pass
-
-        authors_info[author_name] = author_info
-
-    if not authors_info:
-        authors_info["None"] = {'affiliation': 'None, no authors returned by CrossRef', 'orcid': 'None'}
+    for author in r['message']['author']:
+        full_name = author['given'] + ' ' + author['family']
+        authors_info.append(full_name)
+    
+    if authors_info:
+        authors_info = get_orcid(authors_info)
+    else: 
+        authors_info.append = {'None, no authors returned by CrossRef'}
 
 
     refs = []
@@ -296,23 +284,13 @@ def paper_data_json_single(doi):
     output_dict = {
         # Paper Metadata
         'title':title,
-        'authors':authors_info,
-        'abstract':abstract,
-        'paperId':paper_id,
-        'publisher':pub_name,
+        'creator':authors_info,
         'datePublished':pub_date,
-        'type':type,
         'keywords':keywords,
-        'about':subject,
-        'fields_of_study':field_of_study,
-        'references':refs,
-        'tldr':tldr,
-        'openAccessPdf':openaccess_pdf,
-        'URL_link': url_link,
-        'openalex_id': openalex_id,
-        #'openaccess': openaccess
+        #'references':refs,
+        #'tldr':tldr,
     }
-    print(output_dict)
+    print("This is the output_dict \n", output_dict)
     return output_dict
 
 async def langchain_paper_search(node):
@@ -351,8 +329,8 @@ async def langchain_paper_search(node):
         #("What are the experimental methods and techniques used by the authors? This can include ways that data was collected as well as ways the samples were synthesized.", document),
         #("What is the scientific question, challenge, or motivation that the authors are trying to address?", document),
         #("Provide a summary of the results and discussions in the paper. What results were obtained and what conclusions were reached?", document),
-        ("Provide a summary of each figure described in the paper. Your response should be a one sentence summary of the figure description, \
-         beginning with 'Fig. #  - description...'. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'. Separate each figure description by a single newline.", document),
+        #("Provide a summary of each figure described in the paper. Your response should be a one sentence summary of the figure description, \
+        # beginning with 'Fig. #  - description...'. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'. Separate each figure description by a single newline.", document),
         #("What future work or unanswered questions are mentioned by the authors?", document),
         ("Tell me who all the authors of this paper are. Your response should be a comma separated list of the authors of the paper, \
          looking like 'first author name, second author name", document),
@@ -369,13 +347,13 @@ async def langchain_paper_search(node):
     summary = await asyncio.gather(*tasks)
 
     # Extracting individual elements from the summary
-    #methods, motive, results, future
-    figures, authors, title = summary  #NOTE: output to variables in strings
+    #methods, motive, results, future figures, 
+    authors, title = summary  #NOTE: output to variables in strings
 
     llm_output = {
         #"motive": motive,
         #"method": methods,
-        "figures": figures,
+        #"figures": figures,
         #"results": results,
         #"future": future,
         "authors": authors,
@@ -383,14 +361,14 @@ async def langchain_paper_search(node):
     }
 
     #transform outputs
-    llm_output['figures'] = llm_output['figures'].split("\n")# using newline character as a split point.
+    #llm_output['figures'] = llm_output['figures'].split("\n")# using newline character as a split point.
     llm_output['authors'] = llm_output['authors'].split(', ') 
     llm_output['authors'] = get_orcid(llm_output["authors"])
 
     return llm_output
 
 def get_orcid(authors): 
-    orcid_info = {}  # Dictionary to store author information
+    orcid_info = []  # Dictionary to store author information
     
     for author in authors: 
         try: 
@@ -400,18 +378,21 @@ def get_orcid(authors):
             print(f"OpenAlex ORCID lookup returned error: {e}\n")
             continue  # Skip to the next author
         
-        if response["meta"]["count"] >= 1: 
-            orcid = response["results"][0]["external_id"]
-            affiliation = response["results"][0]["affiliations"][0]
-            name = response["results"][0]["display_name"]
+        #print(response)
+        if response["meta"]["count"] >= 1:
+            orcid = response["results"][0]["orcid"]
+            print(orcid)
+            affiliation = response["results"][0]["affiliations"][0]["institution"]["display_name"]
+            display_name = response["results"][0]["display_name"]  # Updated to use display_name
 
             author_info = {
-                "orcid": orcid,
-                "affiliation": affiliation
+                "@id": f"https://orcid.org/{orcid}",
+                "role": "Person",
+                "affiliation": affiliation,
+                "name": display_name
             }
-        
-            orcid_info[author] = author_info
-            orcid_info[name] = orcid_info.pop(author)
+
+            orcid_info.append(author_info)
 
         else:
             print("None, There are no OrcID suggestions for this author")
@@ -422,35 +403,6 @@ def get_orcid(authors):
 
 
     return orcid_info
-
-#def get_orcid(authors): 
-    orcid = []
-    author_info = {}   
-
-    for author in authors: 
-        try: 
-            url = "https://api.openalex.org/autocomplete/authors?q=" + author
-            response = json.loads(requests.get(url).text)
-        except: 
-            print(f"OpenAlex ORCID lookup returned error: {e}\n")
-        
-        if response["meta"]["count"] == 1: 
-            orcid = response["results"][0]["external_id"]
-            author_info[author] = {"orcid": orcid, "affiliation":response["results"][0]["hint"]}
-        elif response["meta"]["count"] == 0: #FAKE - Create a test so we can check if the return is valid. 
-            print("None, There are no OrcID suggestions for this author")
-        else: 
-            orcid = response["results"][0]["external_id"]
-            author_info[author] = {"orcid": orcid, "affiliation": response["results"][0]["hint"]}
-            #create an async function which ranks the authors based on the similarity to the paper. 
-
-    return author_info
-
-def check_item_filled(json_ld, name):
-    for item in json_ld["@graph"]:
-        if name in item:
-            return True
-    return False
 
 def update_json_ld(json_ld, new_data):
     # Process author information
@@ -484,7 +436,7 @@ def update_json_ld(json_ld, new_data):
             json_ld["@graph"][1][key.lower()] = value
             print("I'm adding: " + str(value))
 
-        print(loop)
+        #print(loop)
     return json_ld
 
 
@@ -501,19 +453,21 @@ if __name__ == "__main__":
         print("NODE_ENVIRONMENT is not set.")
 
     json_ld = get_jsonld(node)
+    print(json_ld)
 
     if DOI_env: 
         lookup_results = paper_data_json_single(DOI_env)
-        updated_json_ld = update_json_ld(json_ld, lookup_results)
+        #updated_json_ld = update_json_ld(json_ld, lookup_results)
         
     else: 
         updated_json_ld = json_ld
 
     llm_output = asyncio.run(langchain_paper_search(node))# output of unstructured text in dictionary
-    updated_json_ld = update_json_ld(json_ld, llm_output)
+    #updated_json_ld = update_json_ld(json_ld, llm_output)
+    updated_json_ld = json_ld
    
-    doi = "https://doi.org/10.1002/adma.202208113"
+    #doi = "https://doi.org/10.1002/adma.202208113"
     
-    print(updated_json_ld)
+    #print(updated_json_ld)
 
     print("Script completed")
