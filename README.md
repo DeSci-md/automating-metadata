@@ -22,71 +22,40 @@ The aim/goal of this is to provide a way to programmically extract machine reada
 Adapted using the methodology described in https://www.nature.com/articles/s41524-021-00687-2, "Automated pipeline for superalloy data by text mining"
 
 ### Setup and use
-Requires the habanero python package for searching crossref (https://pypi.org/project/habanero/)
 
-```shell
-pip install habanero
+Make sure you have Docker installed on your machine. You can download it from [Docker's official website](https://www.docker.com/get-started).
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/DeSci-md/automating-metadata.git
+cd your-repository
 ```
 
-For calling the Elsevier API, the httpx module is used.
+### Build the Docker Image
 
-```shell
-pip install httpx
+```bash
+docker build -t your-image-name .
 ```
 
-For XML file parsing, the package BeautifulSoup is used, with lxml as an xml parser.
+### Run the Docker Container
 
-```shell
-pip install beautifulsoup4
-pip install lxml
+```bash
+docker run -e NODE_ENV=your-node-env -e DOI_ENV=your-doi-env your-image-name
 ```
 
-# Web Interface/Client
-Current progress is being tracked by [signal-k/client](http://github.com/Signal-K/client/pull/19) and will be added as a git submodule once our generator & metadata smart contracts are completed
+Replace `your-node-env` and `your-doi-env` with the desired values for `NODE_ENV` and `DOI_ENV`.
 
-## Generative API
-### Containerisation for local development
+### Setting Environment Variables
 
-In root dir, `Dockerfile` runs the Flask Server in a container.
+- **NODE_ENV**: This determines the node you want to get metadata for. EG: 46
+- **DOI_ENV**: This is a DOI that corresponds to the node. if you do not have a DOI for the article, do not set this variable. 
 
-The `docker-compose.yml` defines a cluster with the Server and a local PostgreSQL container
+You can set these environment variables using the `-e` option with the `docker run` command.
 
-For convenience, a Makefile supports the following simple operations:
+### Example
 
-* `make build` builds an image from the current working copy
-* `make run` starts the cluster, rebuilding if necessary
-* `make logs` tails the logs for both containers
-* `make stop` stops and deletes the clusters
+```bash
+docker run -e NODE_ENV="46" -e DOI_ENV="10.3847/0004-637X/828/1/46" your-image-name
+```
 
-For rapid iteration, I use:
-`make stop run logs`
-
-#### Prerequisites
-
-You will need to have a Docker environment available... Docker Desktop or an equivalent
-
-#### Previous Issues
-
-##### ThirdWeb
-
-The build step (`make build`) fails whilst running `pipenv install` during the build of the Docker image.
-
-`thirdweb-sdk` caused errors on `pipenv install`. The output was long and ugly; but a resolution has been found.
-The problem was the use of the `slim-` base image.  Switching from `p`ython:3.9.9-slim-bullseye` to `python:3.9.9-bullseye` avoided the problem.
-
-##### Ventura - Flask default port 5000
-
-Flask runs by default on port 5000.  However, on macos Ventura, there is a system service "Airplay Receiver" listening on this port.
-
-In this case, `localhost:5000` does not reach the Flask app, although `127.0.0.1:5000` does.
-
-The easiest solution is to turn off the Airplay Receiver service; an alternative is to run Flask on a different port... perhaps 7355 for TESS?
-
-#### Current Issue
-
-The server responds to `http://localhost:5000` with a classic "Hello World"
-
-Several of the blueprints in `app.py` are commented out since they have dependencies on ThirdWeb
-
-# Flask blueprints
-For now, each flask file is located in the root directory of this repository - however they'll be moved into their own folders with their respective models, views and controllers down the line

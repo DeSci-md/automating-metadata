@@ -16,6 +16,7 @@ import httpx  # for elsevier and semantic scholar api calls
 from habanero import Crossref, cn  # Crossref database accessing
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
 from langchain.document_loaders import PyPDFLoader # document loader import
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chat_models import ChatOpenAI  # LLM import
 from langchain import LLMChain  # Agent import
 from langchain.prompts.chat import ( # prompts for designing inputs
@@ -24,6 +25,8 @@ from langchain.prompts.chat import ( # prompts for designing inputs
     ChatPromptTemplate
 )
 from langchain.indexes import VectorstoreIndexCreator
+from langchain.vectorstores import FAISS
+from langchain.embeddings import OpenAIEmbeddings
 import fitz #pdf reading library
 import json
 from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers, Funders
@@ -346,6 +349,12 @@ async def langchain_paper_search(node):
     text = get_pdf_text(node)
     document = Document(page_content = text)
 
+    splitter = RecursiveCharacterTextSplitter(chunk_size = 5000, chunk_overlap = 1000)
+    texts = splitter.split_documents(document)
+    embeddings = OpenAIEmbeddings()
+
+    db = FAISS.from_documents(texts, embeddings)
+
     # Define all the queries and corresponding schemas in a list
     queries_schemas_docs = [
         #("What are the experimental methods and techniques used by the authors? This can include ways that data was collected as well as ways the samples were synthesized.", document),
@@ -361,8 +370,9 @@ async def langchain_paper_search(node):
 
     tasks = []
 
-    # Run the queries concurrently using asyncio.gather
+    # Run the queries concurrently using asyncio.gather and pulling doc text from database
     for query, docs in queries_schemas_docs:
+        docs = db.similarity_search(query) # Retrieving docs through similarity search
         task = chain.arun(doc_text=docs, query=query)
         tasks.append(task)
 
