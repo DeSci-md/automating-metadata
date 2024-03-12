@@ -33,7 +33,7 @@ from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers
 import pyalex
 import PyPDF2
 import io
-#import tiktoken
+import tiktoken
 #from demo import read_single 
 
 #TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
@@ -350,10 +350,10 @@ async def langchain_paper_search(node):
     document = Document(page_content = text)
 
     splitter = RecursiveCharacterTextSplitter(chunk_size = 5000, chunk_overlap = 1000)
-    texts = splitter.split_documents(document)
+    split_texts = splitter.split_text(text)
     embeddings = OpenAIEmbeddings()
-
-    db = FAISS.from_documents(texts, embeddings)
+    db = FAISS.from_texts(split_texts, embeddings)
+    print("Database built...\n")
 
     # Define all the queries and corresponding schemas in a list
     queries_schemas_docs = [
