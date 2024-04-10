@@ -10,5 +10,9 @@ COPY app/ /usr/src/app/
 # Install dependencies
 RUN pip install -r requirements.txt
 
+#run service - Expose (what is the request response model)
+EXPOSE 5001
+
 # Define the command to run when the container starts
-CMD ["python", "langchain_api.py"]
+CMD ["flask", "run", "--host=0.0.0.0"]
+#CMD ["python", "langchain_orcid.py"]

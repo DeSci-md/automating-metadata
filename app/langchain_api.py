@@ -36,9 +36,6 @@ import io
 import tiktoken
 #from demo import read_single 
 
-#TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
-#TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
-
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
 pyalex.config.email = "ellie@desci.com"
@@ -255,6 +252,7 @@ def paper_data_json_single(doi):
         openaccess_pdf = "None, Semantic Scholar lookup error"
 
     # OpenAlex accessing as backup info for the previous tools
+    openalex=True
     try:
         openalex_results = Works()[doi]  # Crossref search using DOI, "r" for request
     except requests.exceptions.HTTPError as e:
@@ -410,51 +408,29 @@ def get_orcid(authors):
             print(f"OpenAlex ORCID lookup returned error: {e}\n")
             continue  # Skip to the next author
         
-        if response["meta"]["count"] >= 1: 
-            orcid = response["results"][0]["external_id"]
-            affiliation = response["results"][0]["affiliations"][0]
-            name = response["results"][0]["display_name"]
+        #print(response)
+        if response["meta"]["count"] >= 1:
+            orcid = response["results"][0]["orcid"]
+            print(orcid)
+            affiliation = response["results"][0]["affiliations"][0]["institution"]["display_name"]
+            display_name = response["results"][0]["display_name"]  # Updated to use display_name
 
             author_info = {
-                "orcid": orcid,
-                "affiliation": affiliation
+                "@id": f"https://orcid.org/{orcid}",
+                "role": "Person",
+                "affiliation": affiliation,
+                "name": display_name
             }
-        
-            orcid_info[author] = author_info
-            orcid_info[name] = orcid_info.pop(author)
+
+            orcid_info[author] = author_info 
 
         else:
             print("None, There are no OrcID suggestions for this author")
-            author_info = "none"
-            orcid_info[author] = author_info
+            orcid_info[author] = "none"
             continue  # Skip to the next author
-
-
 
     return orcid_info
 
-#def get_orcid(authors): 
-    orcid = []
-    author_info = {}   
-
-    for author in authors: 
-        try: 
-            url = "https://api.openalex.org/autocomplete/authors?q=" + author
-            response = json.loads(requests.get(url).text)
-        except: 
-            print(f"OpenAlex ORCID lookup returned error: {e}\n")
-        
-        if response["meta"]["count"] == 1: 
-            orcid = response["results"][0]["external_id"]
-            author_info[author] = {"orcid": orcid, "affiliation":response["results"][0]["hint"]}
-        elif response["meta"]["count"] == 0: #FAKE - Create a test so we can check if the return is valid. 
-            print("None, There are no OrcID suggestions for this author")
-        else: 
-            orcid = response["results"][0]["external_id"]
-            author_info[author] = {"orcid": orcid, "affiliation": response["results"][0]["hint"]}
-            #create an async function which ranks the authors based on the similarity to the paper. 
-
-    return author_info
 
 def check_item_filled(json_ld, name):
     for item in json_ld["@graph"]:
@@ -499,7 +475,7 @@ def update_json_ld(json_ld, new_data):
 
 
 #%% Main, general case for testing
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     print("Starting code run...")
 
     node = "46" #os.getenv('NODE_ENV')
@@ -527,3 +503,36 @@ if __name__ == "__main__":
     print(updated_json_ld)
 
     print("Script completed")
+"""
+def run(node, doi=None): 
+    print("Starting code run...")
+
+    #node = "46" #os.getenv('NODE_ENV')
+    #DOI_env = "10.3847/0004-637X/828/1/46"#os.getenv('DOI_ENV') #
+    
+    if node is not None:
+        print(f"NODE_ENVIRONMENT is set to: {node}")
+    else:
+        print("NODE_ENVIRONMENT is not set.")
+
+    json_ld = get_jsonld(node)
+    print(json_ld)
+
+    if doi: 
+        lookup_results = paper_data_json_single(doi)
+        #updated_json_ld = update_json_ld(json_ld, lookup_results)
+        
+    else: 
+        updated_json_ld = json_ld
+
+    llm_output = asyncio.run(langchain_paper_search(node))# output of unstructured text in dictionary
+    #updated_json_ld = update_json_ld(json_ld, llm_output)
+    updated_json_ld = json_ld
+    #doi = "https://doi.org/10.1002/adma.202208113"
+    
+    #print(updated_json_ld)
+
+    print("Script completed")
+
+if __name__ == "__main__":
+ run("46", "https://doi.org/10.1002/adma.202208113")
