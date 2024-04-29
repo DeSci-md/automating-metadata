@@ -398,43 +398,6 @@ def get_orcid(authors):
 
     return orcid_info
 
-"""def get_orcid(authors): 
-    orcid_info = []  # Dictionary to store author information
-    
-    for author in authors: 
-        try: 
-            url = "https://api.openalex.org/authors?search=" + author
-            response = json.loads(requests.get(url).text)
-        except Exception as e:  # Added variable 'e' to catch the exception
-            print(f"OpenAlex ORCID lookup returned error: {e}\n")
-            continue  # Skip to the next author
-        
-        #print(response)
-        if response["meta"]["count"] >= 1:
-            orcid = response["results"][0]["orcid"]
-            print(orcid)
-            affiliation = response["results"][0]["affiliations"][0]["institution"]["display_name"]
-            display_name = response["results"][0]["display_name"]  # Updated to use display_name
-
-            author_info = {
-                "@id": f"https://orcid.org/{orcid}",
-                "role": "Person",
-                "affiliation": affiliation,
-                "name": display_name
-            }
-
-            orcid_info.append(author_info)
-
-        else:
-            print("None, There are no OrcID suggestions for this author")
-            author_info = "none"
-            orcid_info[author] = author_info
-            continue  # Skip to the next author
-
-
-
-    return orcid_info
-"""
 def update_json_ld(json_ld, new_data):
     # Process author information
     loop = 0
