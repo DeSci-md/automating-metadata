@@ -8,7 +8,7 @@ The core of this project is to see how we can use LLM and other technology avail
 2. Metadata is inconsistently applied.
 3. Metadata is inflexible
 
-These features create a problem which makes relevant literature difficult to connect to each other, leaves the decision of what metadata to include up to researchers or journals, and requires standard application to be useful. We then end up with inconsistent metadata that can't connect research projects either to their own research objects like the code and data associated with them, or to other papers that might be relevant. These issues make academic search and representing an accurate 'map' of science extremely difficult. 
+These features create a problem that makes relevant literature difficult to connect to each other, leaves the decision of what metadata to include up to researchers or journals, and requires a standard application to be useful. We then end up with inconsistent metadata that can't connect research projects either to their own research objects like the code and data associated with them, or to other papers that might be relevant. These issues make academic search and representing an accurate 'map' of science extremely difficult. 
 
 We hope to see how we can create a flexible metadata standard that accurately connects papers both to their own additional materials and to other research based on as much data as we can gather. 
 
@@ -18,7 +18,7 @@ How might we reliably automate a literature review?
 
 ## Publication Text Extraction
 ### Aim/Goal
-The aim/goal of this is to provide a way to programmically extract machine readable text from journal publication when provided an identifier such as a title or DOI.
+The aim/goal of this is to provide a way to programmatically extract machine-readable text from journal publications when provided an identifier such as a title or DOI.
 Adapted using the methodology described in https://www.nature.com/articles/s41524-021-00687-2, "Automated pipeline for superalloy data by text mining"
 
 ### Setup and use
@@ -35,27 +35,52 @@ cd your-repository
 ### Build the Docker Image
 
 ```bash
-docker build -t your-image-name .
+docker build -t automating-metadata-v1.
 ```
 
 ### Run the Docker Container
 
 ```bash
-docker run -e NODE_ENV=your-node-env -e DOI_ENV=your-doi-env your-image-name
+docker run -p 5001:5001 automating-metadata-v1
 ```
 
-Replace `your-node-env` and `your-doi-env` with the desired values for `NODE_ENV` and `DOI_ENV`.
+The application will be available at `http://localhost:5001/invoke-script`.
 
-### Setting Environment Variables
+#### Endpoint
 
-- **NODE_ENV**: This determines the node you want to get metadata for. EG: 46
-- **DOI_ENV**: This is a DOI that corresponds to the node. if you do not have a DOI for the article, do not set this variable. 
+The application exposes a single endpoint:
 
-You can set these environment variables using the `-e` option with the `docker run` command.
+**POST /invoke-script**
+- **Request Body**: JSON object with `pdf` and `doi` fields
+- **Response**: JSON object with `output` field containing the result of the `langchain_orcid2.run()` function
 
-### Example
-
-```bash
-docker run -e NODE_ENV="46" -e DOI_ENV="10.3847/0004-637X/828/1/46" your-image-name
+Example request:
+```json
+{
+  "pdf": "path/to/pdf/file",
+  "doi": "10.1234/example-doi"
+}
 ```
+
+Example response:
+```json
+{
+  "output": "Result of the script execution"
+}
+```
+
+### Endpoint
+If you would like to contribute to this project, please follow these guidelines:
+- Fork the repository
+- Create a new branch for your feature or bug fix
+- Make your changes and commit them
+- Push your branch to your forked repository
+- Submit a pull request to the main repository
+
+### Credits
+
+This project uses the many third-party libraries documented in the requirements file!
+
+### License
+This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
