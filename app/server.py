@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import langchain_orcid2  # Import your script
+import langchain_orcid2 # Import your script
 
 app = Flask(__name__)
 
@@ -9,6 +9,7 @@ def invoke_script():
     pdf = data.get("pdf")
     doi = data.get("doi")
     # Call your script with the appropriate inputs
+
     if doi is not None:
         output = langchain_orcid2.run(pdf, doi)
     else: 
