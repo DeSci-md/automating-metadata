@@ -58,7 +58,7 @@ Example response:
 }
 ```
 
-### Endpoint
+### Contribution
 If you would like to contribute to this project, please follow these guidelines:
 - Fork the repository
 - Create a new branch for your feature or bug fix
