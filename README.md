@@ -1,25 +1,14 @@
-# automating-metadata
+# Automating Author Identification
 
-A central place to drop all of our experiments! As a disclaimer - we're still at the experimentation phase! Lots of this code will change. 
+This is the first operational version of the automated metadata application. We've updated it to meet the requirements of the [DeSci Nodes](nodes.desci.com) application as a first use case. 
 
-The core of this project is to see how we can use LLM and other technology available to us to respond to the following problems (not an exhaustive list): 
+The core of this version of the project is to implement one quality-of-life improvement for submitting articles to pre-print servers. It is intended to address the tedium of manually inputting all the OrcIDs for each co-author on a paper and promote consistent application of the OrcID standard.
 
-1. Metadata is non-standard/incomparable. 
-2. Metadata is inconsistently applied.
-3. Metadata is inflexible
-
-These features create a problem that makes relevant literature difficult to connect to each other, leaves the decision of what metadata to include up to researchers or journals, and requires a standard application to be useful. We then end up with inconsistent metadata that can't connect research projects either to their own research objects like the code and data associated with them, or to other papers that might be relevant. These issues make academic search and representing an accurate 'map' of science extremely difficult. 
-
-We hope to see how we can create a flexible metadata standard that accurately connects papers both to their own additional materials and to other research based on as much data as we can gather. 
-
-We're operationalizing this problem as: 
-
-How might we reliably automate a literature review? 
+For documentation on the full scope of the Automating Metadata project see the documentation at the [Automating Metadata Repository](https://github.com/DeSci-md/automating-metadata). 
 
 ## Publication Text Extraction
 ### Aim/Goal
-The aim/goal of this is to provide a way to programmatically extract machine-readable text from journal publications when provided an identifier such as a title or DOI.
-Adapted using the methodology described in https://www.nature.com/articles/s41524-021-00687-2, "Automated pipeline for superalloy data by text mining"
+The aim/goal of this is to provide a way to return the author names, affiliations, and OrcID from publications when provided an identifier such as a DOI or any PDF (published or unpublished). See [endpoint](#endpoint) for an example of the input and outputs for the project. 
 
 ### Setup and use
 
