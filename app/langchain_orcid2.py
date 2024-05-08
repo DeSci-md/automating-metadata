@@ -33,9 +33,6 @@ import io
 import tiktoken
 #from demo import read_single 
 
-#TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
-#TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
-
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
 pyalex.config.email = "ellie@desci.com"
@@ -94,7 +91,40 @@ def get_pdf_text(pdf_url):
         print(f"Error fetching PDF from {url}. Status code: {response.status_code}")
         return None
 
-def paper_data_json_single(doi):
+def validate_doi(doi):
+    """
+    Validate a Digital Object Identifier (DOI) using the DOI Proxy Server API.
+    
+    Args:
+        doi (str): The DOI to be validated.
+        
+    Returns:
+        dict: A dictionary with the following keys:
+            - "is_valid": True if the DOI is valid, False otherwise.
+            - "message": A message describing the validation result.
+    """
+    if doi.startswith("https://doi.org/"):
+        doi = doi[len("https://doi.org/"):]
+
+    try:
+        # Make a GET request to the DOI Proxy Server API
+        response = requests.get(f"https://doi.org/api/handles/{doi}")
+        
+        # Check the response status code
+        if response.status_code == 200:
+            # DOI is valid
+            return {"is_valid": True, "message": "DOI is valid."}
+        elif response.status_code == 404:
+            # DOI not found
+            return {"is_valid": False, "message": "DOI not found."}
+        else:
+            # Other error
+            return {"is_valid": False, "message": f"Error validating DOI: {response.status_code} - {response.text}"}
+    except requests.exceptions.RequestException as e:
+        # Handle network or other errors
+        return {"is_valid": False, "message": f"Error validating DOI: {e}"}
+
+def published_metadata(doi):
     """
     Create a json output file for a single paper using the inputed identifier.
     Only using a DOI string at the moment
@@ -115,64 +145,47 @@ def paper_data_json_single(doi):
 
 
     #%% Info from Crossref
+    #%% Info from Crossref
+    title = "None, Crossref Error"
+    abstract = "None, Crossref Error"
+    type = "None, Crossref Error"
+    pub_name = "None, Crossref Error"
+    pub_date = "None, Crossref Error"
+    subject = "None, Crossref Error"
+    authors_info = "None"
+    refs = []
+    url_link = "None, Crossref Error"
+
     try:
-        r = cr.works(ids = f'{doi}')  # Crossref search using DOI, "r" for request
+        r = cr.works(ids=f'{doi}')  # Crossref search using DOI, "r" for request
+        
+        title = r['message']['title'][0]
+        abstract = r['message']['abstract'][0]
+        type = r['message']['type']
+        pub_name = r['message']['container-title'][0]
+        pub_date = r['message']['published']['date-parts'][0]
+        subject = r['message']['subject']
+        subject = r['message']['license']
+
+        authors_info = []
+        for author in r['message']['author']:
+            full_name = author['given'] + ' ' + author['family']
+            authors_info.append(full_name)
+        
+        if authors_info:
+            authors_info = get_orcid(authors_info)
+        
+        refs = []
+        for i in r['message']['reference']:
+            try:
+                refs.append(i['DOI'])
+            except:
+                refs.append(f"{i['key']}, DOI not present")
+        
+        url_link = r['message']['URL']
     except requests.exceptions.HTTPError as e:
         print(f"None, CrossRef DOI lookup returned error: {e}\n")
-
-    try:
-        title = r['message']['title'][0]
-    except:
-        title = f"None, Crossref Error"
-    try:
-        abstract = r['message']['abstract'][0]
-    except:
-        abstract = f"None, Crossref Error"
-    try:
-        type = r['message']['type']
-    except:
-        type = "None, Crossref Error"
-
-    try:
-        pub_name = r['message']['container-title'][0]
-    except:
-        pub_name = "None, Crossref Error"
-
-    try:
-        pub_date = r['message']['published']['date-parts'][0]
-    except:
-        pub_date = "None, Crossref Error"
-
-    try:
-        subject = r['message']['subject']
-    except:
-        subject = "None, Crossref Error"
-    try:
-        subject = r['message']['license']
-    except:
-        subject = "None, Crossref Error"
-    
-    authors_info = []
-
-    for author in r['message']['author']:
-        full_name = author['given'] + ' ' + author['family']
-        authors_info.append(full_name)
-    
-    if authors_info:
-        authors_info = get_orcid(authors_info)
-    else: 
-        authors_info = "None"
-
-
-    refs = []
-    for i in r['message']['reference']:
-        try:
-            refs.append(i['DOI'])
-        except:
-            refs.append(f"{i['key']}, DOI not present")
         
-    url_link = r['message']['URL']
-    
     
 
     #%% Info from Semantic Scholar
@@ -347,7 +360,7 @@ def get_orcid(authors):
             display_name = response["results"][0]["display_name"]  # Updated to use display_name
 
             author_info = {
-                "@id": f"https://orcid.org/{orcid}",
+                "@id": f"{orcid}",
                 "role": "Person",
                 "affiliation": affiliation,
                 "name": display_name
@@ -395,25 +408,22 @@ def update_json_ld(json_ld, new_data):
             print("I'm adding: " + str(value))
     return json_ld
 
-
 #%% Main, general case for testing
 def run(pdf, doi=None): 
     print("Starting code run...")
     
-    if [pdf] is not None:
-        print(f"NODE_ENVIRONMENT is set to: {pdf}")
-    else:
-        print("NODE_ENVIRONMENT is not set.")
-
     if doi: 
-        lookup_results = paper_data_json_single(doi)
-        if lookup_results['creator'] is None:  # Check if author_info is None
-            print("No author information found. Running language chain search.")
+        doi_validation = validate_doi(doi)
+
+        if not doi_validation["is_valid"] or published_metadata(doi)['creator'] is None:  
+            print(published_metadata(doi)['creator'])
+            print("entered DOI not valid") 
             llm_output = asyncio.run(langchain_paper_search(pdf))
-            output = llm_output
+            output = llm_output 
         else:
-            output = lookup_results
-      
+            print("entered else statement")
+            output = published_metadata(doi)
+
     else: 
         llm_output = asyncio.run(langchain_paper_search(pdf))
         output = llm_output
@@ -424,6 +434,10 @@ def run(pdf, doi=None):
 """if __name__ == "__main__":
  run("bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "https://doi.org/10.1002/adma.202208113")
  curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "https://doi.org/10.1002/adma.202208113"}' http://localhost:5001/invoke-script
-  curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4"}' http://localhost:5001/invoke-script
+    curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4"}' http://localhost:5001/invoke-script
+ curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "10.1002/adma.202208113"}' http://localhost:5001/invoke-script
+ curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "10.1002/adma.20228113"}' http://localhost:5001/invoke-script
+ curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "10.1002/adma.20228113"}' http://localhost:5001/invoke-script
 
  """
+# %%
