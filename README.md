@@ -54,7 +54,19 @@ Example request:
 Example response:
 ```json
 {
-  "output": "Result of the script execution"
+  {
+   "output":{
+      "authors":{
+         "M. Anonymous":{
+            "@id":"https://orcid.org/0000-0000-0000-0000",
+            "affiliation":"Well-known Foundation",
+            "name":"Mark Anonymous",
+            "role":"Person"
+         }
+      },
+      "title":"The title of the paper is \"The Extracted Title"
+   }
+}
 }
 ```
 
