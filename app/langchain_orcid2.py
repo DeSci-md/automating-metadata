@@ -113,6 +113,7 @@ def validate_doi(doi):
         # Check the response status code
         if response.status_code == 200:
             # DOI is valid
+            print("DOI is valid")
             return {"is_valid": True, "message": "DOI is valid."}
         elif response.status_code == 404:
             # DOI not found
@@ -152,7 +153,7 @@ def published_metadata(doi):
     pub_name = "None, Crossref Error"
     pub_date = "None, Crossref Error"
     subject = "None, Crossref Error"
-    authors_info = "None"
+    authors_info = "None, no authors"
     refs = []
     url_link = "None, Crossref Error"
 
@@ -268,6 +269,11 @@ def published_metadata(doi):
         keywords = openalex_results['keywords']
     except:
         keywords = "none"
+    try:    
+        if openalex and openalex_results['open_access']['is_oa']: 
+            oa_url = openalex_results['open_access']['oa_url']
+    except:
+        oa_url = "none"
 
     
     #%% Constructing output dictionary
@@ -277,8 +283,41 @@ def published_metadata(doi):
         'creator': authors_info,
         'datePublished':pub_date,
         'keywords':keywords,
+        'oa_url':oa_url,
     }
     return output_dict
+
+def get_oa_pdf(doi):
+    """
+    Fetches the Open Access PDF for a given DOI.
+    
+    Args:
+        doi (str): The DOI of the research work.
+    
+    Returns:
+        bytes: The PDF file content, or None if the work is not Open Access or an error occurred.
+    """
+    # Step 1: Get the work object from OpenAlex API
+    openalex = True
+
+    try:
+        openalex_results = Works()[doi]  # Crossref search using DOI, "r" for request
+    except requests.exceptions.HTTPError as e:
+        print(f"OpenAlex DOI lookup returned error: {e}\n")
+        openalex = False
+
+    # Step 2: Check if the work is Open Access
+    if openalex and openalex_results['open_access']['is_oa']: 
+        oa_url = openalex_results['open_access']['oa_url']
+        pdf_response = requests.get(oa_url)
+        if pdf_response.status_code == 200:
+            return pdf_response.content
+        else:
+            print(f"Error fetching PDF: {pdf_response.status_code}")
+    else:
+        print("The work is not Open Access.")
+    
+    return None
 
 async def langchain_paper_search(pdf_CID):
     #file_path
@@ -409,35 +448,42 @@ def update_json_ld(json_ld, new_data):
     return json_ld
 
 #%% Main, general case for testing
-def run(pdf, doi=None): 
+def run(pdf=None, doi=None): 
     print("Starting code run...")
     
     if doi: 
         doi_validation = validate_doi(doi)
-
-        if not doi_validation["is_valid"] or published_metadata(doi)['creator'] is None:  
-            print(published_metadata(doi)['creator'])
-            print("entered DOI not valid") 
-            llm_output = asyncio.run(langchain_paper_search(pdf))
-            output = llm_output 
-        else:
-            print("entered else statement")
-            output = published_metadata(doi)
-
+        published_metadata(doi)['creator']
+        if not doi_validation["is_valid"] or published_metadata(doi)['creator'] is None and pdf: 
+            print("DOI isn't valid, searching through the PDF for metadata")
+            output = asyncio.run(langchain_paper_search(pdf))
+            return
+        elif not doi_validation["is_valid"] and not pdf: 
+            print("Failed to fetch the PDF and Metadata from the DOI. Please fill in your metadata manually or upload a PDF.")
+            return
+        elif published_metadata(doi)['creator'] is None and not pdf:
+            print("Congrats - you have entered the loop that says there are no authors and no pdf")
+            pdf = get_oa_pdf(doi)
+            if pdf:
+                print("Congrats - you have entered the loop that says there is no Author info + searched through an OA pdf")
+                output = [asyncio.run(langchain_paper_search(pdf)), pdf]
+            else:
+                print("There is no metadata associated with the DOI, and couldn't fetch PDF. Please enter your metadata manually, or upload a different DOI.") 
+            return      
+        elif not pdf:
+            pdf = get_oa_pdf(doi)
+            if pdf:
+                output = [published_metadata(doi)]
+                print("You have entered the yes doi and no pdf loop - and returned the PDF")
+            else:
+                print("You've entered the - we haven't found a OA pdf, and we don't have a PDF")
+                output = published_metadata(doi)
     else: 
-        llm_output = asyncio.run(langchain_paper_search(pdf))
-        output = llm_output
+        output = asyncio.run(langchain_paper_search(pdf))
+
     
-    return output
     print("Script completed")
+    return output
 
-"""if __name__ == "__main__":
- run("bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "https://doi.org/10.1002/adma.202208113")
- curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "https://doi.org/10.1002/adma.202208113"}' http://localhost:5001/invoke-script
-    curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4"}' http://localhost:5001/invoke-script
- curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "10.1002/adma.202208113"}' http://localhost:5001/invoke-script
- curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "10.1002/adma.20228113"}' http://localhost:5001/invoke-script
- curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "10.1002/adma.20228113"}' http://localhost:5001/invoke-script
-
- """
 # %%
+

@@ -12,9 +12,11 @@ def invoke_script():
 
     if doi is not None:
         output = langchain_orcid2.run(pdf, doi)
+    elif pdf is None and doi is not None: 
+        output = langchain_orcid2.run(doi)
     else: 
         output = langchain_orcid2.run(pdf)
-    return jsonify({'output': output})
+    return {'output': output}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
