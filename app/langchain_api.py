@@ -16,6 +16,7 @@ import httpx  # for elsevier and semantic scholar api calls
 from habanero import Crossref, cn  # Crossref database accessing
 from dotenv import load_dotenv, find_dotenv  # loading in API keys
 from langchain.document_loaders import PyPDFLoader # document loader import
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chat_models import ChatOpenAI  # LLM import
 from langchain import LLMChain  # Agent import
 from langchain.prompts.chat import ( # prompts for designing inputs
@@ -24,6 +25,8 @@ from langchain.prompts.chat import ( # prompts for designing inputs
     ChatPromptTemplate
 )
 from langchain.indexes import VectorstoreIndexCreator
+from langchain.vectorstores import FAISS
+from langchain.embeddings import OpenAIEmbeddings
 import fitz #pdf reading library
 import json
 from pyalex import Works #, Authors, Sources, Institutions, Concepts, Publishers, Funders
@@ -33,9 +36,6 @@ import io
 import tiktoken
 #from demo import read_single 
 
-#TODO: IF doi -> then search open alex -> determine relevant metadata to return. -> Together once everything is up to date. 
-#TODO: get api + langchain + sturcutred output in a pretty package -> Ellie
-
 #from ..Server.PDFDataExtractor.pdfdataextractor.demo import read_single
 sys.path.append(os.path.abspath("/Users/desot1/Dev/automating-metadata/Server/PDFDataExtractor/pdfdataextractor"))
 pyalex.config.email = "ellie@desci.com"
@@ -44,13 +44,40 @@ pyalex.config.email = "ellie@desci.com"
 load_dotenv(find_dotenv())
 
 
-"""def num_tokens_from_string(string: str, encoding_name: str) -> int:
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
     encoding = tiktoken.encoding_for_model(encoding_name)
     num_tokens = len(encoding.encode(string))
-    return num_tokens"""
+    return num_tokens
 
-def get_pdf_text(pdf_url):
+def get_jsonld(node):
+    base = "https://beta.dpid.org/"
+    root = "?jsonld"
+
+    #return requested node JSON
+    response2 = requests.get(base+node+root).json()
+    return response2
+
+def get_pdf_text(node):
+    base = "https://beta.dpid.org/"
+    root = "?raw"
+
+    #return most recent node JSON
+    manifest = requests.get(base+node+root).json()
+    
+    #get the CID associated with the Payload + PDF object
+    try:
+        pdf_path = next(item['payload']['path'] for item in manifest['components'] if item['type'] == 'pdf')
+        print(pdf_path)
+        
+        pdf_url = next(item['payload']['url'] for item in manifest['components'] if item['type'] == 'pdf')
+
+    except: 
+        return "No PDF object found"
+    
+    url = base+pdf_path+"?raw"
+    print(url)
     ipfs="https://ipfs.desci.com/ipfs/"+pdf_url
+    print(ipfs)
   
     response = requests.get(ipfs) 
     
@@ -152,16 +179,26 @@ def paper_data_json_single(doi):
     except:
         subject = "None, Crossref Error"
     
-    authors_info = []
+    authors_info = {}
 
-    for author in r['message']['author']:
-        full_name = author['given'] + ' ' + author['family']
-        authors_info.append(full_name)
-    
-    if authors_info:
-        authors_info = get_orcid(authors_info)
-    else: 
-        authors_info = "None"
+    for i in r['message']['author']:
+        author_name = i['given'] + ' ' + i['family']
+        author_info = {'affiliation': None, 'orcid': None}
+
+        try:
+            author_info['affiliation'] = i['affiliation'][0]['name']
+        except (KeyError, IndexError):
+            pass
+
+        try:
+            author_info['orcid'] = i['ORCID']
+        except KeyError:
+            pass
+
+        authors_info[author_name] = author_info
+
+    if not authors_info:
+        authors_info["None"] = {'affiliation': 'None, no authors returned by CrossRef', 'orcid': 'None'}
 
 
     refs = []
@@ -215,8 +252,7 @@ def paper_data_json_single(doi):
         openaccess_pdf = "None, Semantic Scholar lookup error"
 
     # OpenAlex accessing as backup info for the previous tools
-    openalex = True
-
+    openalex=True
     try:
         openalex_results = Works()[doi]  # Crossref search using DOI, "r" for request
     except requests.exceptions.HTTPError as e:
@@ -261,13 +297,26 @@ def paper_data_json_single(doi):
     output_dict = {
         # Paper Metadata
         'title':title,
-        'creator': authors_info,
+        'authors':authors_info,
+        'abstract':abstract,
+        'paperId':paper_id,
+        'publisher':pub_name,
         'datePublished':pub_date,
+        'type':type,
         'keywords':keywords,
+        'about':subject,
+        'fields_of_study':field_of_study,
+        'references':refs,
+        'tldr':tldr,
+        'openAccessPdf':openaccess_pdf,
+        'URL_link': url_link,
+        'openalex_id': openalex_id,
+        #'openaccess': openaccess
     }
+    print(output_dict)
     return output_dict
 
-async def langchain_paper_search(pdf_CID):
+async def langchain_paper_search(node):
     #file_path
     """
     Analyzes a pdf document defined by file_path and asks questions regarding the text
@@ -295,11 +344,23 @@ async def langchain_paper_search(pdf_CID):
 
     #%% Extracting info from paper
     # Define the PDF document, load it in
-    text = get_pdf_text(pdf_CID)
+    text = get_pdf_text(node)
     document = Document(page_content = text)
+
+    splitter = RecursiveCharacterTextSplitter(chunk_size = 5000, chunk_overlap = 1000)
+    split_texts = splitter.split_text(text)
+    embeddings = OpenAIEmbeddings()
+    db = FAISS.from_texts(split_texts, embeddings)
+    print("Database built...\n")
 
     # Define all the queries and corresponding schemas in a list
     queries_schemas_docs = [
+        #("What are the experimental methods and techniques used by the authors? This can include ways that data was collected as well as ways the samples were synthesized.", document),
+        #("What is the scientific question, challenge, or motivation that the authors are trying to address?", document),
+        #("Provide a summary of the results and discussions in the paper. What results were obtained and what conclusions were reached?", document),
+        ("Provide a summary of each figure described in the paper. Your response should be a one sentence summary of the figure description, \
+         beginning with 'Fig. #  - description...'. For example:'Fig. 1 - description..., Fig. 2 - description..., Fig. 3 - description...'. Separate each figure description by a single newline.", document),
+        #("What future work or unanswered questions are mentioned by the authors?", document),
         ("Tell me who all the authors of this paper are. Your response should be a comma separated list of the authors of the paper, \
          looking like 'first author name, second author name", document),
         ("Tell me the title of this paper", document)
@@ -307,22 +368,30 @@ async def langchain_paper_search(pdf_CID):
 
     tasks = []
 
-    # Run the queries concurrently using asyncio.gather
+    # Run the queries concurrently using asyncio.gather and pulling doc text from database
     for query, docs in queries_schemas_docs:
+        docs = db.similarity_search(query) # Retrieving docs through similarity search
         task = chain.arun(doc_text=docs, query=query)
         tasks.append(task)
 
     summary = await asyncio.gather(*tasks)
 
     # Extracting individual elements from the summary
-    authors, title = summary 
+    #methods, motive, results, future
+    figures, authors, title = summary  #NOTE: output to variables in strings
 
     llm_output = {
+        #"motive": motive,
+        #"method": methods,
+        "figures": figures,
+        #"results": results,
+        #"future": future,
         "authors": authors,
         "title": title
     }
 
-    #transform outputs into comma separated lists and then into a structured dictionary of authors. 
+    #transform outputs
+    llm_output['figures'] = llm_output['figures'].split("\n")# using newline character as a split point.
     llm_output['authors'] = llm_output['authors'].split(', ') 
     llm_output['authors'] = get_orcid(llm_output["authors"])
 
@@ -362,6 +431,13 @@ def get_orcid(authors):
 
     return orcid_info
 
+
+def check_item_filled(json_ld, name):
+    for item in json_ld["@graph"]:
+        if name in item:
+            return True
+    return False
+
 def update_json_ld(json_ld, new_data):
     # Process author information
     loop = 0
@@ -393,37 +469,70 @@ def update_json_ld(json_ld, new_data):
         else:
             json_ld["@graph"][1][key.lower()] = value
             print("I'm adding: " + str(value))
+
+        print(loop)
     return json_ld
 
 
 #%% Main, general case for testing
-def run(pdf, doi=None): 
+"""if __name__ == "__main__":
     print("Starting code run...")
+
+    node = "46" #os.getenv('NODE_ENV')
+    DOI_env = "10.3847/0004-637X/828/1/46"#os.getenv('DOI_ENV') #
     
-    if [pdf] is not None:
-        print(f"NODE_ENVIRONMENT is set to: {pdf}")
+    if node is not None:
+        print(f"NODE_ENVIRONMENT is set to: {node}")
     else:
         print("NODE_ENVIRONMENT is not set.")
 
+    json_ld = get_jsonld(node)
+
+    if DOI_env: 
+        lookup_results = paper_data_json_single(DOI_env)
+        updated_json_ld = update_json_ld(json_ld, lookup_results)
+        
+    else: 
+        updated_json_ld = json_ld
+
+    llm_output = asyncio.run(langchain_paper_search(node))# output of unstructured text in dictionary
+    updated_json_ld = update_json_ld(json_ld, llm_output)
+   
+    doi = "https://doi.org/10.1002/adma.202208113"
+    
+    print(updated_json_ld)
+
+    print("Script completed")
+"""
+def run(node, doi=None): 
+    print("Starting code run...")
+
+    #node = "46" #os.getenv('NODE_ENV')
+    #DOI_env = "10.3847/0004-637X/828/1/46"#os.getenv('DOI_ENV') #
+    
+    if node is not None:
+        print(f"NODE_ENVIRONMENT is set to: {node}")
+    else:
+        print("NODE_ENVIRONMENT is not set.")
+
+    json_ld = get_jsonld(node)
+    print(json_ld)
+
     if doi: 
         lookup_results = paper_data_json_single(doi)
-        if lookup_results['creator'] is None:  # Check if author_info is None
-            print("No author information found. Running language chain search.")
-            llm_output = asyncio.run(langchain_paper_search(pdf))
-            output = llm_output
-        else:
-            output = lookup_results
-      
+        #updated_json_ld = update_json_ld(json_ld, lookup_results)
+        
     else: 
-        llm_output = asyncio.run(langchain_paper_search(pdf))
-        output = llm_output
+        updated_json_ld = json_ld
+
+    llm_output = asyncio.run(langchain_paper_search(node))# output of unstructured text in dictionary
+    #updated_json_ld = update_json_ld(json_ld, llm_output)
+    updated_json_ld = json_ld
+    #doi = "https://doi.org/10.1002/adma.202208113"
     
-    return output
+    #print(updated_json_ld)
+
     print("Script completed")
 
-"""if __name__ == "__main__":
- run("bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "https://doi.org/10.1002/adma.202208113")
- curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4", "doi": "https://doi.org/10.1002/adma.202208113"}' http://localhost:5001/invoke-script
-  curl -X POST -H "Content-Type: application/json" -d '{"pdf": "bafybeiamslevhsvjlnfejg7p2rzk6bncioaapwb3oauu7zqwmfpwko5ho4"}' http://localhost:5001/invoke-script
-
- """
+if __name__ == "__main__":
+ run("46", "https://doi.org/10.1002/adma.202208113")
